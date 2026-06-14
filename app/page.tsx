@@ -1,7 +1,10 @@
+import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 import { redirect } from 'next/navigation'
 
+import { HomeGreeting } from '@/components/home-greeting'
 import { LogoutButton } from '@/components/login/logout-button'
 import { createClient } from '@/lib/server'
+import { getQueryClient, trpc } from '@/trpc/server'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -11,10 +14,16 @@ export default async function Home() {
     redirect('/auth/login')
   }
 
+  const queryClient = getQueryClient()
+  void queryClient.prefetchQuery(trpc.hello.queryOptions({ text: 'world' }))
+
   return (
-    <div className="flex h-svh w-full items-center justify-center gap-4">
-      <h1 className="text-2xl font-semibold">Hello, World!</h1>
-      <LogoutButton />
-    </div>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <div className="flex h-svh w-full flex-col items-center justify-center gap-4">
+        <h1 className="text-2xl font-semibold">Hello, World!</h1>
+        <HomeGreeting />
+        <LogoutButton />
+      </div>
+    </HydrationBoundary>
   )
 }
