@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 
 import { createClient } from '@/lib/client'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/shared/button'
 
 export function LogoutButton() {
   const router = useRouter()
