@@ -15,6 +15,13 @@
       "when": 1781432669461,
       "tag": "0001_melted_the_spike",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781540138061,
+      "tag": "0002_slim_rawhide_kid",
+      "breakpoints": true
     }
   ]
 }

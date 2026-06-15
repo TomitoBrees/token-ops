@@ -1,4 +1,4 @@
-import { pgSchema, pgTable, pgEnum, text, timestamp, uuid, unique } from 'drizzle-orm/pg-core'
+import { pgSchema, pgTable, pgEnum, text, timestamp, uuid, unique, integer } from 'drizzle-orm/pg-core'
 
 const authSchema = pgSchema('auth')
 
@@ -20,6 +20,7 @@ export const profiles = pgTable('profiles', {
 export const companies = pgTable('companies', {
   id: uuid('id').primaryKey().defaultRandom()  ,
   name: text('name').notNull(),
+  size: integer('size'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 }) ;
 
