@@ -1,24 +1,10 @@
 import { z } from 'zod'
 
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '../init'
+import { profileRouter } from './profile'
 
 export const appRouter = createTRPCRouter({
-  hello: publicProcedure
-    .input(
-      z.object({
-        text: z.string(),
-      }),
-    )
-    .query(({ input }) => {
-      return {
-        greeting: `hello ${input.text}`,
-      }
-    }),
-  me: protectedProcedure.query(({ ctx }) => {
-    return {
-      sub: ctx.user.sub,
-    }
-  }),
+  profile: profileRouter
 })
 
 export type AppRouter = typeof appRouter
