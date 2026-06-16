@@ -2,10 +2,6 @@ import { GalleryVerticalEndIcon } from "lucide-react"
 
 import { RegisterCompanyForm } from "@/components/forms/register-company-form"
 
-function handleSubmit() {
-    console.log("Submitted")
-}
-
 export default async function Page() {
     return (
         <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
@@ -14,9 +10,9 @@ export default async function Page() {
               <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
                 <GalleryVerticalEndIcon className="size-4" />
               </div>
-              Register your company
+              TokenOps
             </a>
-            <RegisterCompanyForm onRegister={handleSubmit}/>
+            <RegisterCompanyForm />
           </div>
         </div>
       )

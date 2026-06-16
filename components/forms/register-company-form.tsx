@@ -1,5 +1,9 @@
 'use client'
 
+import { useMutation } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,34 +19,52 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useTRPC } from "@/trpc/client"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
-import { useState } from "react"
 
-type RegisterCompanyFormProps = React.ComponentProps<"div"> & {
-  onRegister?: (data: { name: string; size: string }) => void
-}
+const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '500+'] as const
+
+type CompanySize = (typeof COMPANY_SIZES)[number]
+
+type RegisterCompanyFormProps = React.ComponentProps<"div">
 
 export function RegisterCompanyForm({
   className,
-  onRegister,
   ...props
 }: RegisterCompanyFormProps) {
-
+  const router = useRouter()
+  const trpc = useTRPC()
   const [name, setName] = useState('')
-  const [size, setSize] = useState('')
+  const [size, setSize] = useState<CompanySize | ''>('')
+  const [error, setError] = useState<string | null>(null)
+
+  const createCompany = useMutation(
+    trpc.company.createCompany.mutationOptions({
+      onSuccess: () => {
+        router.push('/')
+        router.refresh()
+      },
+      onError: (err) => {
+        setError(err.message)
+      },
+    }),
+  )
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onRegister?.({ name, size })
+    if (!size) return
+
+    setError(null)
+    createCompany.mutate({ name, size })
   }
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Create your account</CardTitle>
+          <CardTitle className="text-xl">Register your company</CardTitle>
           <CardDescription>
-            Enter your email below to create your account
+            Enter your company details below
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -54,7 +76,7 @@ export function RegisterCompanyForm({
               </Field>
               <Field>
                 <FieldLabel htmlFor="size">Company size</FieldLabel>
-                <Select value={size} onValueChange={setSize}>
+                <Select value={size} onValueChange={(value) => setSize(value as CompanySize)}>
                 <SelectTrigger id="size">
                   <SelectValue placeholder="Select team size" />
                 </SelectTrigger>
@@ -69,8 +91,13 @@ export function RegisterCompanyForm({
                 </SelectContent>
               </Select>
               </Field>
+              {error && (
+                <p className="text-sm text-destructive">{error}</p>
+              )}
               <Field>
-                <Button type="submit">Register company</Button>
+                <Button type="submit" disabled={createCompany.isPending}>
+                  {createCompany.isPending ? 'Registering...' : 'Register company'}
+                </Button>
               </Field>
             </FieldGroup>
           </form>

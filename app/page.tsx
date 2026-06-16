@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { LogoutButton } from '@/components/login/logout-button'
 import { createClient } from '@/lib/server'
 import { getQueryClient, trpc } from '@/trpc/server'
+import { TRPCError } from '@trpc/server'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -14,13 +15,18 @@ export default async function Home() {
   }
 
   const queryClient = getQueryClient()
-  void queryClient.prefetchQuery(trpc.profile.getProfile.queryOptions())
+
+  const companyData = await queryClient.fetchQuery(
+    trpc.profile.getCompany.queryOptions()
+  )
+  if (!companyData) {
+    redirect('/create-company')
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <div className="flex h-svh w-full flex-col items-center justify-center gap-4">
-        <h1 className="text-2xl font-semibold">Hello, World!</h1>
-        <LogoutButton />
+        Hello World!
       </div>
     </HydrationBoundary>
   )

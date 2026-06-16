@@ -25,7 +25,7 @@ export const profileRouter = createTRPCRouter({
             with: {company: true},
         })
         if (!membership) {
-            throw new TRPCError({ code: 'NOT_FOUND'})
+            return null
         }
         return { company: membership.company, role: membership.role }
     })

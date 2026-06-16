@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm'
 import { pgSchema, pgTable, pgEnum, text, timestamp, uuid, unique, integer } from 'drizzle-orm/pg-core'
 
 const authSchema = pgSchema('auth')
@@ -35,3 +36,22 @@ export const companyMembers = pgTable('company_members', {
 }, (table) => [
   unique('company_members_user_company_unique').on(table.userId, table.companyId),
 ],);
+
+export const profilesRelations = relations(profiles, ({ many }) => ({
+  companyMembers: many(companyMembers),
+}));
+
+export const companiesRelations = relations(companies, ({ many }) => ({
+  members: many(companyMembers),
+}));
+
+export const companyMembersRelations = relations(companyMembers, ({ one }) => ({
+  company: one(companies, {
+    fields: [companyMembers.companyId],
+    references: [companies.id],
+  }),
+  profile: one(profiles, {
+    fields: [companyMembers.userId],
+    references: [profiles.id],
+  }),
+}));
