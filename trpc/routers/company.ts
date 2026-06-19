@@ -1,6 +1,6 @@
 import z from "zod";
 import { createTRPCRouter, protectedProcedure } from "../init";
-import { companies, companyMembers } from "@/drizzle/schema";
+import { companies, companyMembers, profiles } from "@/drizzle/schema";
 
 const COMPANY_SIZE_OPTIONS = [
     '1-10',
@@ -27,8 +27,15 @@ export const companyRouter = createTRPCRouter({
     .mutation(async ({ctx, input}) => {
 
         return ctx.db.transaction(async (tx) => {
-            const [company] = await tx.insert(companies).values({name: input.name, size: MAX_SIZE_BY_RANGE[input.size]}).returning()
-            await ctx.db.insert(companyMembers).values({userId: ctx.user.sub, companyId: company.id, role: "owner"})
+
+            const [company] = await tx
+                .insert(companies)
+                .values({ name: input.name, size: MAX_SIZE_BY_RANGE[input.size] })
+                .returning()
+
+            await tx
+                .insert(companyMembers)
+                .values({ userId: ctx.user.sub, companyId: company.id, role: "owner" })
 
             return company
         })
