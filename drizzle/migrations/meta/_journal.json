@@ -22,6 +22,20 @@
       "when": 1781540138061,
       "tag": "0002_slim_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781897795115,
+      "tag": "0003_useful_living_lightning",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781899726212,
+      "tag": "0004_sparkling_whiplash",
+      "breakpoints": true
     }
   ]
 }

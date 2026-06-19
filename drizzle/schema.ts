@@ -8,6 +8,8 @@ export const authUsers = authSchema.table('users', {
   id: uuid('id').primaryKey(),
 });
 
+/* PROFILES */
+
 export const profiles = pgTable('profiles', {
   id: uuid('id')
     .primaryKey()
@@ -18,6 +20,9 @@ export const profiles = pgTable('profiles', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+
+/* COMPANIES */
+
 export const companies = pgTable('companies', {
   id: uuid('id').primaryKey().defaultRandom()  ,
   name: text('name').notNull(),
@@ -25,10 +30,14 @@ export const companies = pgTable('companies', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 }) ;
 
-export const roleEnum = pgEnum('member_role', ['owner', 'developer']);
+/* COMPANY MEMBERS */
+export const MEMBER_ROLES = ['owner', 'developer', 'viewer'] as const;
+export type MemberRole = (typeof MEMBER_ROLES)[number];
+
+export const roleEnum = pgEnum('member_role', MEMBER_ROLES);
 
 export const companyMembers = pgTable('company_members', {
-  id: uuid('id').primaryKey().defaultRandom()  ,
+  id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => profiles.id),
   companyId: uuid('company_id').references(() => companies.id),
   role: roleEnum().notNull().default("developer"),
@@ -36,6 +45,23 @@ export const companyMembers = pgTable('company_members', {
 }, (table) => [
   unique('company_members_user_company_unique').on(table.userId, table.companyId),
 ],);
+
+
+/* INVITATIONS */
+
+export const inviteStatusEnum = pgEnum('status', ['pending', 'accepted', 'revoked']);
+
+export const company_invitations = pgTable('company_invitations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  company_id: uuid('company_id').references(() => companies.id),
+  email: text('email').notNull(),
+  role: roleEnum().notNull(),
+  status: inviteStatusEnum().notNull().default("pending"),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
+
+/* RELATIONS */
 
 export const profilesRelations = relations(profiles, ({ many }) => ({
   companyMembers: many(companyMembers),
