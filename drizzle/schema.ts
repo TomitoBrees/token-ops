@@ -51,7 +51,7 @@ export const companyMembers = pgTable('company_members', {
 
 export const inviteStatusEnum = pgEnum('status', ['pending', 'accepted', 'revoked']);
 
-export const company_invitations = pgTable('company_invitations', {
+export const companyInvitations = pgTable('company_invitations', {
   id: uuid('id').primaryKey().defaultRandom(),
   company_id: uuid('company_id').references(() => companies.id),
   email: text('email').notNull(),
