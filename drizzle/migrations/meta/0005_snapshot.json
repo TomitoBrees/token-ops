@@ -145,12 +145,8 @@
           "name": "company_invitations_company_id_companies_id_fk",
           "tableFrom": "company_invitations",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -160,10 +156,7 @@
         "company_invitations_company_email_unique": {
           "name": "company_invitations_company_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "company_id",
-            "email"
-          ]
+          "columns": ["company_id", "email"]
         }
       },
       "policies": {},
@@ -267,12 +260,8 @@
           "name": "company_members_user_id_profiles_id_fk",
           "tableFrom": "company_members",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -280,12 +269,8 @@
           "name": "company_members_company_id_companies_id_fk",
           "tableFrom": "company_members",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -295,17 +280,12 @@
         "company_members_user_company_unique": {
           "name": "company_members_user_company_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "company_id"
-          ]
+          "columns": ["user_id", "company_id"]
         },
         "company_members_proxy_token_unique": {
           "name": "company_members_proxy_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "proxy_token"
-          ]
+          "columns": ["proxy_token"]
         }
       },
       "policies": {},
@@ -372,12 +352,8 @@
           "tableFrom": "profiles",
           "tableTo": "users",
           "schemaTo": "auth",
-          "columnsFrom": [
-            "id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -511,12 +487,8 @@
           "name": "usage_events_company_member_id_company_members_id_fk",
           "tableFrom": "usage_events",
           "tableTo": "company_members",
-          "columnsFrom": [
-            "company_member_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_member_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -532,20 +504,12 @@
     "public.status": {
       "name": "status",
       "schema": "public",
-      "values": [
-        "pending",
-        "accepted",
-        "revoked"
-      ]
+      "values": ["pending", "accepted", "revoked"]
     },
     "public.member_role": {
       "name": "member_role",
       "schema": "public",
-      "values": [
-        "owner",
-        "developer",
-        "viewer"
-      ]
+      "values": ["owner", "developer", "viewer"]
     }
   },
   "schemas": {},

@@ -6,7 +6,7 @@ import { invitationRouter } from './invitation'
 export const appRouter = createTRPCRouter({
   profile: profileRouter,
   company: companyRouter,
-  invitation: invitationRouter
+  invitation: invitationRouter,
 })
 
 export type AppRouter = typeof appRouter
