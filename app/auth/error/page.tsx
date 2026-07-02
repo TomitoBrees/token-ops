@@ -3,7 +3,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from '@/components/shared/card'
+} from '@/components/ui/card'
 
 export default async function Page({
   searchParams,
