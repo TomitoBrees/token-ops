@@ -21,13 +21,13 @@ export default async function Home() {
   )
   if (!companyData) {
     redirect('/create-company')
+  } else {
+    redirect('/dashboard')
   }
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <div className="flex h-svh w-full flex-col items-center justify-center gap-4">
-        Hello World!
-      </div>
-    </HydrationBoundary>
+    <div className="flex h-svh w-full flex-col items-center justify-center gap-4">
+      Hello World!
+    </div>
   )
 }

@@ -30,13 +30,11 @@ export const companyRouter = createTRPCRouter({
           .values({ name: input.name, size: MAX_SIZE_BY_RANGE[input.size] })
           .returning()
 
-        await tx
-          .insert(companyMembers)
-          .values({
-            userId: ctx.user.sub,
-            companyId: company.id,
-            role: 'owner',
-          })
+        await tx.insert(companyMembers).values({
+          userId: ctx.user.sub,
+          companyId: company.id,
+          role: 'owner',
+        })
 
         return company
       })
