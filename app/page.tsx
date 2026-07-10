@@ -17,7 +17,7 @@ export default async function Home() {
   const queryClient = getQueryClient()
 
   const companyData = await queryClient.fetchQuery(
-    trpc.profile.getCompany.queryOptions(),
+    trpc.company.getCompany.queryOptions(),
   )
   if (!companyData) {
     redirect('/create-company')

@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 
 import { protectedProcedure, createTRPCRouter } from '../init'
 
-import { companyMembers, profiles } from '@/drizzle/schema'
+import { profiles } from '@/drizzle/schema'
 import { TRPCError } from '@trpc/server'
 
 export const profileRouter = createTRPCRouter({
@@ -15,16 +15,5 @@ export const profileRouter = createTRPCRouter({
     }
 
     return profile
-  }),
-
-  getCompany: protectedProcedure.query(async ({ ctx }) => {
-    const membership = await ctx.db.query.companyMembers.findFirst({
-      where: eq(companyMembers.userId, ctx.user.sub),
-      with: { company: true },
-    })
-    if (!membership) {
-      return null
-    }
-    return { company: membership.company, role: membership.role }
   }),
 })

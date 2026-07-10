@@ -1,6 +1,13 @@
+import { eq } from 'drizzle-orm'
 import z from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../init'
-import { companies, companyMembers, profiles } from '@/drizzle/schema'
+import {
+  companies,
+  companyMembers,
+  companyUsageOverview,
+  profiles,
+} from '@/drizzle/schema'
+import { getUserCompanyMembership } from '../lib/membership'
 
 const COMPANY_SIZE_OPTIONS = [
   '1-10',
@@ -21,6 +28,10 @@ const MAX_SIZE_BY_RANGE: Record<CompanySize, number> = {
 }
 
 export const companyRouter = createTRPCRouter({
+  getCompany: protectedProcedure.query(async ({ ctx }) => {
+    return await getUserCompanyMembership(ctx.db, ctx.user.sub)
+  }),
+
   createCompany: protectedProcedure
     .input(z.object({ name: z.string(), size: z.enum(COMPANY_SIZE_OPTIONS) }))
     .mutation(async ({ ctx, input }) => {
@@ -34,6 +45,13 @@ export const companyRouter = createTRPCRouter({
           userId: ctx.user.sub,
           companyId: company.id,
           role: 'owner',
+        })
+
+        await tx.insert(companyUsageOverview).values({
+          companyId: company.id,
+          totalCalls: 0,
+          tokensConsumed: 0,
+          totalCostUsd: '0',
         })
 
         return company

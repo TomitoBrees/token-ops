@@ -142,6 +142,23 @@ export const usageEvents = pgTable(
   ],
 )
 
+export const companyUsageOverview = pgTable(
+  'company_usage_overview',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    companyId: uuid('company_id').references(() => companies.id),
+    totalCalls: integer('total_calls').notNull().default(0),
+    tokensConsumed: integer('tokens_consumed').notNull().default(0),
+    totalCostUsd: numeric(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique('company_usage_overview_company_id_unique').on(table.companyId),
+  ],
+)
+
 /* RELATIONS */
 
 export const profilesRelations = relations(profiles, ({ many }) => ({
@@ -173,3 +190,13 @@ export const usageEventsRelations = relations(usageEvents, ({ one }) => ({
     references: [companyMembers.id],
   }),
 }))
+
+export const companyUsageOverviewRelations = relations(
+  companyUsageOverview,
+  ({ one }) => ({
+    company: one(companies, {
+      fields: [companyUsageOverview.companyId],
+      references: [companies.id],
+    }),
+  }),
+)
