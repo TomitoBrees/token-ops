@@ -43,6 +43,27 @@
       "when": 1782639724363,
       "tag": "0005_colorful_king_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783764625016,
+      "tag": "0006_minor_valeria_richards",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783764649176,
+      "tag": "0007_usage_overview_trigger",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783765534027,
+      "tag": "0008_cold_prima",
+      "breakpoints": true
     }
   ]
 }

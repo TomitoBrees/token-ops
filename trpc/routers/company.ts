@@ -3,11 +3,13 @@ import z from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import {
   companies,
+  companyBudgets,
   companyMembers,
   companyUsageOverview,
   profiles,
 } from '@/drizzle/schema'
 import { getUserCompanyMembership } from '../lib/membership'
+import { TRPCError } from '@trpc/server'
 
 const COMPANY_SIZE_OPTIONS = [
   '1-10',
@@ -57,4 +59,25 @@ export const companyRouter = createTRPCRouter({
         return company
       })
     }),
+
+  getCurrentMonthBudget: protectedProcedure.query(async ({ ctx }) => {
+    const membership = await getUserCompanyMembership(ctx.db, ctx.user.sub)
+    if (!membership || !membership.company) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'The current user doesnt have a company',
+      })
+    }
+
+    const today = new Date()
+    const currentMonth = today.getMonth() + 1
+    const currentYear = today.getFullYear()
+
+    return ctx.db.query.companyBudgets.findFirst({
+      where:
+        eq(companyBudgets.companyId, membership.company.id) &&
+        eq(companyBudgets.month, currentMonth) &&
+        eq(companyBudgets.year, currentYear),
+    })
+  }),
 })

@@ -1,0 +1,1 @@
+ALTER TABLE "company_usage_overview" RENAME COLUMN "totalCostUsd" TO "total_cost_usd";

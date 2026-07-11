@@ -50,6 +50,29 @@ export const companies = pgTable('companies', {
     .notNull(),
 })
 
+export const companyBudgets = pgTable(
+  'company_budgets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    companyId: uuid('company_id')
+      .references(() => companies.id)
+      .notNull(),
+    month: integer('month').notNull(),
+    year: integer('year').notNull(),
+    budget: integer('budget').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique('company_budgets_company_month_year_unique').on(
+      table.companyId,
+      table.month,
+      table.year,
+    ),
+  ],
+)
+
 /* COMPANY MEMBERS */
 export const MEMBER_ROLES = ['owner', 'developer', 'viewer'] as const
 export type MemberRole = (typeof MEMBER_ROLES)[number]
@@ -149,7 +172,7 @@ export const companyUsageOverview = pgTable(
     companyId: uuid('company_id').references(() => companies.id),
     totalCalls: integer('total_calls').notNull().default(0),
     tokensConsumed: integer('tokens_consumed').notNull().default(0),
-    totalCostUsd: numeric(),
+    totalCostUsd: numeric('total_cost_usd').notNull().default('0'),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
