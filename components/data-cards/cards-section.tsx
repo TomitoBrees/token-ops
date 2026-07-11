@@ -76,9 +76,6 @@ export function CardsSection() {
     })
   }
 
-  const showBudgetAlert =
-    metrics?.budgetUsedPercent != null && metrics.budgetUsedPercent >= 70
-
   return (
     <section className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -88,21 +85,6 @@ export function CardsSection() {
             ))
           : cardsData?.map((card) => <DataCard key={card.title} {...card} />)}
       </div>
-
-      {showBudgetAlert && metrics?.budgetUsedPercent != null && (
-        <div className="flex gap-3 rounded-2xl border border-destructive/30 bg-card px-4 py-4 ring-1 ring-destructive/20">
-          <AlertTriangleIcon className="mt-0.5 shrink-0 text-warning" />
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-destructive">
-              Budget threshold approaching
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Budget {formatPercent(metrics.budgetUsedPercent)} used — projected
-              to reach 104 % by month end at the current pace.
-            </p>
-          </div>
-        </div>
-      )}
     </section>
   )
 }
