@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { cn } from '@/lib/utils'
 
 type MetricDataCardProps = {
   variant?: 'metric'
@@ -18,7 +19,7 @@ type MetricDataCardProps = {
   value: string
   description: string
   icon: LucideIcon
-  evolution: {
+  evolution?: {
     value: string
     direction: 'positive' | 'negative'
   }
@@ -35,6 +36,10 @@ type ProgressDataCardProps = {
 
 export type DataCardProps = MetricDataCardProps | ProgressDataCardProps
 
+const cardClassName = 'h-full border border-border shadow-sm ring-0'
+
+const iconClassName = 'size-3.5 text-muted-foreground'
+
 function MetricDataCard({
   title,
   value,
@@ -42,30 +47,34 @@ function MetricDataCard({
   icon: Icon,
   evolution,
 }: MetricDataCardProps) {
-  const TrendIcon =
-    evolution.direction === 'positive' ? TrendingUpIcon : TrendingDownIcon
+  const TrendIcon = evolution
+    ? evolution.direction === 'positive'
+      ? TrendingUpIcon
+      : TrendingDownIcon
+    : TrendingUpIcon
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
+    <Card size="sm" className={cardClassName}>
+      <CardHeader className="pb-0">
+        <CardTitle className="font-normal text-muted-foreground">
+          {title}
+        </CardTitle>
         <CardAction>
-          <Icon />
+          <Icon className={iconClassName} />
         </CardAction>
       </CardHeader>
-      <CardContent className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-3">
-          <p className="text-3xl font-bold tracking-tight">{value}</p>
-          <Badge
-            variant={
-              evolution.direction === 'negative' ? 'destructive' : 'outline'
-            }
-          >
-            <TrendIcon data-icon="inline-start" />
-            {evolution.value}
-          </Badge>
+      <CardContent className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <p className="text-2xl font-semibold tracking-tight">{value}</p>
+
+          {evolution && (
+            <Badge variant="secondary" className="h-5 px-2 font-normal">
+              <TrendIcon data-icon="inline-start" />
+              {evolution.value}
+            </Badge>
+          )}
         </div>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription className="text-xs">{description}</CardDescription>
       </CardContent>
     </Card>
   )
@@ -79,20 +88,24 @@ function ProgressDataCard({
   progress,
 }: ProgressDataCardProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
+    <Card size="sm" className={cardClassName}>
+      <CardHeader className="pb-0">
+        <CardTitle className="font-normal text-muted-foreground">
+          {title}
+        </CardTitle>
         <CardAction>
-          <Icon />
+          <Icon className={iconClassName} />
         </CardAction>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <p className="text-3xl font-bold tracking-tight text-warning">{value}</p>
+      <CardContent className="flex flex-col gap-2">
+        <p className="text-2xl font-semibold tracking-tight text-warning">
+          {value}
+        </p>
         <Progress
           value={progress}
-          className="h-2 [&_[data-slot=progress-indicator]]:bg-warning"
+          className="[&_[data-slot=progress-indicator]]:bg-warning"
         />
-        <CardDescription>{description}</CardDescription>
+        <CardDescription className="text-xs">{description}</CardDescription>
       </CardContent>
     </Card>
   )
@@ -104,4 +117,18 @@ export function DataCard(props: DataCardProps) {
   }
 
   return <MetricDataCard {...props} />
+}
+
+export function DataCardSkeleton() {
+  return (
+    <Card size="sm" className={cn(cardClassName, 'animate-pulse')}>
+      <CardHeader className="pb-0">
+        <div className="h-3.5 w-24 rounded bg-muted" />
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        <div className="h-7 w-28 rounded bg-muted" />
+        <div className="h-3 w-36 rounded bg-muted" />
+      </CardContent>
+    </Card>
+  )
 }

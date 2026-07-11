@@ -17,6 +17,35 @@ export type CardMetrics = {
   budgetUsedPercent?: number
 }
 
+const numberFormat = new Intl.NumberFormat('de-DE')
+
+export function formatCalls(value: number): string {
+  return numberFormat.format(value)
+}
+
+export function formatTokens(value: number): string {
+  if (value >= 1_000_000) {
+    return `${numberFormat.format(Math.round((value / 1_000_000) * 10) / 10)} M`
+  }
+  if (value >= 1_000) {
+    return `${numberFormat.format(Math.round((value / 1_000) * 10) / 10)} K`
+  }
+  return formatCalls(value)
+}
+
+export function formatCurrency(value: number, fractionDigits = 2): string {
+  return new Intl.NumberFormat('de-DE', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value)
+}
+
+export function formatPercent(value: number): string {
+  return `${numberFormat.format(Math.round(value * 10) / 10)} %`
+}
+
 export function buildCardMetrics(
   usage: UsageOverview,
   budget?: number,
