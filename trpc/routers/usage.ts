@@ -1,7 +1,13 @@
-import { companyUsageDaily, companyUsageOverview } from '@/drizzle/schema'
+import {
+	companyMembers,
+	companyUsageDaily,
+	companyUsageOverview,
+	memberUsageDaily,
+	profiles,
+} from '@/drizzle/schema'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import { getUserCompanyMembership } from '../lib/membership'
-import { and, asc, eq, gte } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, sum } from 'drizzle-orm'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 
@@ -76,6 +82,64 @@ export const usageRouter = createTRPCRouter({
 					date,
 					totalCalls,
 					tokensConsumed,
+					totalCostUsd,
+				}),
+			)
+		}),
+
+	getTopUsers: protectedProcedure
+		.input(z.number())
+		.query(async ({ ctx, input }) => {
+			const membership = await getUserCompanyMembership(
+				ctx.db,
+				ctx.user.sub,
+			)
+
+			if (!membership || !membership.company) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'The current user doesnt have a company',
+				})
+			}
+
+			const start = new Date()
+			start.setUTCDate(start.getUTCDate() - (input - 1))
+			const startDate = start.toISOString().slice(0, 10)
+
+			const topUsers = await ctx.db
+				.select({
+					name: profiles.displayName,
+					email: profiles.email,
+					totalCalls: sum(memberUsageDaily.totalCalls),
+					tokensConsumed: sum(memberUsageDaily.tokensConsumed),
+					totalCostUsd: sum(memberUsageDaily.totalCostUsd),
+				})
+				.from(memberUsageDaily)
+				.innerJoin(
+					companyMembers,
+					eq(memberUsageDaily.companyMemberId, companyMembers.id),
+				)
+				.innerJoin(profiles, eq(companyMembers.userId, profiles.id))
+				.where(
+					and(
+						eq(memberUsageDaily.companyId, membership.company.id),
+						gte(memberUsageDaily.date, startDate),
+					),
+				)
+				.groupBy(
+					memberUsageDaily.companyMemberId,
+					profiles.displayName,
+					profiles.email,
+				)
+				.orderBy(desc(sum(memberUsageDaily.totalCostUsd)))
+				.limit(8)
+
+			return topUsers.map(
+				({ name, email, totalCalls, tokensConsumed, totalCostUsd }) => ({
+					name,
+					email,
+					totalCalls: Number(totalCalls ?? 0),
+					tokensConsumed: Number(tokensConsumed ?? 0),
 					totalCostUsd,
 				}),
 			)

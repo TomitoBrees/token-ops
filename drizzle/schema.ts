@@ -204,6 +204,34 @@ export const companyUsageDaily = pgTable(
 	],
 )
 
+export const memberUsageDaily = pgTable(
+	'member_usage_daily',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		companyMemberId: uuid('company_member_id').references(
+			() => companyMembers.id,
+		),
+		companyId: uuid('company_id').references(() => companies.id),
+		date: date('date').notNull(),
+		totalCalls: integer('total_calls').notNull().default(0),
+		tokensConsumed: integer('tokens_consumed').notNull().default(0),
+		totalCostUsd: numeric('total_cost_usd').notNull().default('0'),
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		unique('member_usage_daily_member_date_unique').on(
+			table.companyMemberId,
+			table.date,
+		),
+		index('member_usage_daily_company_date_idx').on(
+			table.companyId,
+			table.date,
+		),
+	],
+)
+
 /* RELATIONS */
 
 export const profilesRelations = relations(profiles, ({ many }) => ({

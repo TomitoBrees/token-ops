@@ -1,5 +1,6 @@
 import { UsageTrendChart } from '@/components/charts/usage-trend-chart'
 import { CardsSection } from '@/components/data-cards/cards-section'
+import { DataTable } from '@/components/tables/data-table'
 import { AppSidebar } from '@/components/nav/app-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { getQueryClient, trpc } from '@/trpc/server'
@@ -10,6 +11,7 @@ export default async function Page() {
 
 	await queryClient.prefetchQuery(trpc.usage.getUsageOverview.queryOptions())
 	await queryClient.prefetchQuery(trpc.usage.getUsageTrend.queryOptions(30))
+	await queryClient.prefetchQuery(trpc.usage.getTopUsers.queryOptions(30))
 	await queryClient.prefetchQuery(
 		trpc.company.getCurrentMonthBudget.queryOptions(),
 	)
@@ -35,7 +37,9 @@ export default async function Page() {
 								<UsageTrendChart />
 							</HydrationBoundary>
 						</div>
-						{/* TODO: Add data table */}
+						<HydrationBoundary state={dehydrate(queryClient)}>
+							<DataTable />
+						</HydrationBoundary>
 					</div>
 				</div>
 			</SidebarInset>
