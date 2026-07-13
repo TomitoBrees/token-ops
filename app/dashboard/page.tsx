@@ -1,6 +1,8 @@
+import { BudgetChart } from '@/components/charts/budget-chart'
 import { UsageTrendChart } from '@/components/charts/usage-trend-chart'
 import { CardsSection } from '@/components/data-cards/cards-section'
 import { DataTable } from '@/components/tables/data-table'
+import { ModelUsage } from '@/components/usage/model-usage'
 import { AppSidebar } from '@/components/nav/app-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { getQueryClient, trpc } from '@/trpc/server'
@@ -12,6 +14,7 @@ export default async function Page() {
 	await queryClient.prefetchQuery(trpc.usage.getUsageOverview.queryOptions())
 	await queryClient.prefetchQuery(trpc.usage.getUsageTrend.queryOptions(30))
 	await queryClient.prefetchQuery(trpc.usage.getTopUsers.queryOptions(30))
+	await queryClient.prefetchQuery(trpc.usage.getTopModels.queryOptions(30))
 	await queryClient.prefetchQuery(
 		trpc.company.getCurrentMonthBudget.queryOptions(),
 	)
@@ -32,11 +35,19 @@ export default async function Page() {
 						<HydrationBoundary state={dehydrate(queryClient)}>
 							<CardsSection />
 						</HydrationBoundary>
-						<div>
-							<HydrationBoundary state={dehydrate(queryClient)}>
-								<UsageTrendChart />
-							</HydrationBoundary>
-						</div>
+						<HydrationBoundary state={dehydrate(queryClient)}>
+							<UsageTrendChart />
+						</HydrationBoundary>
+						<HydrationBoundary state={dehydrate(queryClient)}>
+							<div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+								<div className="xl:col-span-2">
+									<ModelUsage />
+								</div>
+								<div className="xl:col-span-1">
+									<BudgetChart />
+								</div>
+							</div>
+						</HydrationBoundary>
 						<HydrationBoundary state={dehydrate(queryClient)}>
 							<DataTable />
 						</HydrationBoundary>

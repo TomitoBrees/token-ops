@@ -14,6 +14,7 @@ import {
   companyUsageDaily,
   companyUsageOverview,
   memberUsageDaily,
+  modelUsageDaily,
   profiles,
   usageEvents,
 } from '../drizzle/schema'
@@ -62,6 +63,27 @@ const MOCK_TEAM = [
     displayName: 'Diego Rossi',
     role: 'viewer' as MemberRole,
     activity: 0.35,
+  },
+] as const
+
+const MOCK_MODELS = [
+  {
+    model: 'claude-sonnet-4',
+    activity: 1.15,
+    costMultiplier: 1,
+    tokensPerCall: 2200,
+  },
+  {
+    model: 'claude-opus-4',
+    activity: 0.42,
+    costMultiplier: 3.8,
+    tokensPerCall: 4800,
+  },
+  {
+    model: 'claude-haiku',
+    activity: 1.35,
+    costMultiplier: 0.22,
+    tokensPerCall: 650,
   },
 ] as const
 
@@ -172,6 +194,45 @@ function generateMemberDailyUsage(members: SeedMember[], dayCount: number) {
         totalCostUsd,
       }
     }).filter((row) => row !== null),
+  )
+}
+
+function generateModelDailyUsage(dayCount: number) {
+  return MOCK_MODELS.flatMap((mockModel, modelIndex) =>
+    Array.from({ length: dayCount }, (_, index) => {
+      const daysBack = dayCount - 1 - index
+      const date = daysAgoUTC(daysBack)
+      const dayOfWeek = new Date(`${date}T00:00:00Z`).getUTCDay()
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+      const variation = ((index * 23 + modelIndex * 9 + 5) % 100) / 100
+      const activity = isWeekend
+        ? 0.22 + variation * 0.42
+        : 0.58 + variation * 0.72
+
+      const totalCalls = Math.max(
+        1,
+        Math.round(
+          (1 + variation * 8) * activity * mockModel.activity,
+        ),
+      )
+      const tokensConsumed = Math.round(
+        totalCalls * mockModel.tokensPerCall * (0.85 + variation * 0.35),
+      )
+      const totalCostUsd = (
+        tokensConsumed * 0.000009 * mockModel.costMultiplier +
+        totalCalls * 0.004 * mockModel.costMultiplier +
+        variation * 0.01
+      ).toFixed(4)
+
+      return {
+        companyId: COMPANY_ID,
+        model: mockModel.model,
+        date,
+        totalCalls,
+        tokensConsumed,
+        totalCostUsd,
+      }
+    }),
   )
 }
 
@@ -320,6 +381,34 @@ async function ensureMemberUsageDailyTable(client: Sql) {
   `)
 }
 
+async function ensureModelUsageDailyTable(client: Sql) {
+  await client.unsafe(`
+    CREATE TABLE IF NOT EXISTS "model_usage_daily" (
+      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+      "company_id" uuid,
+      "model" text NOT NULL,
+      "date" date NOT NULL,
+      "total_calls" integer DEFAULT 0 NOT NULL,
+      "tokens_consumed" integer DEFAULT 0 NOT NULL,
+      "total_cost_usd" numeric DEFAULT '0' NOT NULL,
+      "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+      CONSTRAINT "company_model_usage_daily_company_model_date_unique" UNIQUE("company_id","model","date")
+    );
+
+    DO $$ BEGIN
+      ALTER TABLE "model_usage_daily"
+        ADD CONSTRAINT "model_usage_daily_company_id_companies_id_fk"
+        FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id")
+        ON DELETE no action ON UPDATE no action;
+    EXCEPTION
+      WHEN duplicate_object THEN NULL;
+    END $$;
+
+    CREATE INDEX IF NOT EXISTS "company_model_usage_daily_company_date_idx"
+      ON "model_usage_daily" ("company_id", "date");
+  `)
+}
+
 async function findAuthUserByEmail(
   supabase: SupabaseClient,
   email: string,
@@ -345,6 +434,9 @@ async function cleanupSeedMembers(
   await db
     .delete(memberUsageDaily)
     .where(eq(memberUsageDaily.companyId, COMPANY_ID))
+  await db
+    .delete(modelUsageDaily)
+    .where(eq(modelUsageDaily.companyId, COMPANY_ID))
 
   const seedProfiles = await db
     .select({ id: profiles.id, email: profiles.email })
@@ -447,6 +539,7 @@ async function main() {
 
   await ensureUsageDailyTable(client)
   await ensureMemberUsageDailyTable(client)
+  await ensureModelUsageDailyTable(client)
 
   console.log('Clearing existing seed data...')
   await cleanupSeedMembers(db, supabase)
@@ -525,6 +618,7 @@ async function main() {
 
   const dailyTrend = generateDailyUsageTrend(TREND_DAYS)
   const memberDailyUsage = generateMemberDailyUsage(allMembers, TREND_DAYS)
+  const modelDailyUsage = generateModelDailyUsage(TREND_DAYS)
 
   console.log(`Seeding company_usage_daily (${TREND_DAYS} days)...`)
   await db
@@ -548,6 +642,26 @@ async function main() {
     .values(memberDailyUsage)
     .onConflictDoUpdate({
       target: [memberUsageDaily.companyMemberId, memberUsageDaily.date],
+      set: {
+        totalCalls: sql`excluded.total_calls`,
+        tokensConsumed: sql`excluded.tokens_consumed`,
+        totalCostUsd: sql`excluded.total_cost_usd`,
+        updatedAt: new Date(),
+      },
+    })
+
+  console.log(
+    `Seeding model_usage_daily (${TREND_DAYS} days, ${MOCK_MODELS.length} models)...`,
+  )
+  await db
+    .insert(modelUsageDaily)
+    .values(modelDailyUsage)
+    .onConflictDoUpdate({
+      target: [
+        modelUsageDaily.companyId,
+        modelUsageDaily.model,
+        modelUsageDaily.date,
+      ],
       set: {
         totalCalls: sql`excluded.total_calls`,
         tokensConsumed: sql`excluded.tokens_consumed`,
@@ -584,6 +698,8 @@ async function main() {
     usageTrendDays: TREND_DAYS,
     usageTrendRange: `${dailyTrend[0].date} → ${dailyTrend.at(-1)?.date}`,
     memberUsageRows: memberDailyUsage.length,
+    modelUsageRows: modelDailyUsage.length,
+    models: MOCK_MODELS.map((mockModel) => mockModel.model).join(', '),
     topMembers: allMembers
       .map((member) => member.displayName)
       .join(', '),

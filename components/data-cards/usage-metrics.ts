@@ -4,10 +4,6 @@ type UsageOverview = {
 	totalCostUsd: string
 }
 
-type Budget = {
-	amount: number
-}
-
 export type CardMetrics = {
 	numberOfCalls: number
 	tokensConsumed: number
