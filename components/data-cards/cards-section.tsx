@@ -16,7 +16,7 @@ import {
   ActivityIcon,
   AlertTriangleIcon,
   DatabaseIcon,
-  EuroIcon,
+  DollarSignIcon,
   GaugeIcon,
 } from 'lucide-react'
 
@@ -56,7 +56,7 @@ export function CardsSection() {
           title: 'Total cost',
           value: formatCurrency(metrics.totalCost),
           description: `${formatCurrency(metrics.costPerCall, 4)} per call`,
-          icon: EuroIcon,
+          icon: DollarSignIcon,
         },
       ]
     : null
