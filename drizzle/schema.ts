@@ -166,11 +166,17 @@ export const usageEvents = pgTable(
 	],
 )
 
-export const companyUsageDaily = pgTable(
-	'company_usage_daily',
+export const usageDaily = pgTable(
+	'usage_daily',
 	{
 		id: uuid('id').primaryKey().defaultRandom(),
-		companyId: uuid('company_id').references(() => companies.id),
+		companyId: uuid('company_id')
+			.references(() => companies.id)
+			.notNull(),
+		companyMemberId: uuid('company_member_id')
+			.references(() => companyMembers.id)
+			.notNull(),
+		model: text('model').notNull().default('unknown'),
 		date: date('date').notNull(),
 		totalCalls: integer('total_calls').notNull().default(0),
 		tokensConsumed: integer('tokens_consumed').notNull().default(0),
@@ -180,98 +186,18 @@ export const companyUsageDaily = pgTable(
 			.notNull(),
 	},
 	(table) => [
-		unique('company_usage_daily_company_date_unique').on(
-			table.companyId,
-			table.date,
-		),
-	],
-)
-
-export const memberUsageDaily = pgTable(
-	'member_usage_daily',
-	{
-		id: uuid('id').primaryKey().defaultRandom(),
-		companyMemberId: uuid('company_member_id').references(
-			() => companyMembers.id,
-		),
-		companyId: uuid('company_id').references(() => companies.id),
-		date: date('date').notNull(),
-		totalCalls: integer('total_calls').notNull().default(0),
-		tokensConsumed: integer('tokens_consumed').notNull().default(0),
-		totalCostUsd: numeric('total_cost_usd').notNull().default('0'),
-		updatedAt: timestamp('updated_at', { withTimezone: true })
-			.defaultNow()
-			.notNull(),
-	},
-	(table) => [
-		unique('member_usage_daily_member_date_unique').on(
-			table.companyMemberId,
-			table.date,
-		),
-		index('member_usage_daily_company_date_idx').on(
-			table.companyId,
-			table.date,
-		),
-	],
-)
-
-export const companyModelUsageDaily = pgTable(
-	'company_model_usage_daily',
-	{
-		id: uuid('id').primaryKey().defaultRandom(),
-		companyId: uuid('company_id').references(() => companies.id),
-		model: text('model').notNull(),
-		date: date('date').notNull(),
-		totalCalls: integer('total_calls').notNull().default(0),
-		tokensConsumed: integer('tokens_consumed').notNull().default(0),
-		totalCostUsd: numeric('total_cost_usd').notNull().default('0'),
-		updatedAt: timestamp('updated_at', { withTimezone: true })
-			.defaultNow()
-			.notNull(),
-	},
-	(table) => [
-		unique('company_model_usage_daily_company_model_date_unique').on(
-			table.companyId,
-			table.model,
-			table.date,
-		),
-		index('company_model_usage_daily_company_date_idx').on(
-			table.companyId,
-			table.date,
-		),
-	],
-)
-
-export const memberModelUsageDaily = pgTable(
-	'member_model_usage_daily',
-	{
-		id: uuid('id').primaryKey().defaultRandom(),
-		companyMemberId: uuid('company_member_id').references(
-			() => companyMembers.id,
-		),
-		companyId: uuid('company_id').references(() => companies.id),
-		model: text('model').notNull(),
-		date: date('date').notNull(),
-		totalCalls: integer('total_calls').notNull().default(0),
-		tokensConsumed: integer('tokens_consumed').notNull().default(0),
-		totalCostUsd: numeric('total_cost_usd').notNull().default('0'),
-		updatedAt: timestamp('updated_at', { withTimezone: true })
-			.defaultNow()
-			.notNull(),
-	},
-	(table) => [
-		unique('member_model_usage_daily_member_model_date_unique').on(
+		unique('usage_daily_member_model_date_unique').on(
 			table.companyMemberId,
 			table.model,
 			table.date,
 		),
-		index('member_model_usage_daily_member_date_idx ').on(
-			table.companyId,
+		index('usage_daily_company_date_idx').on(table.companyId, table.date),
+		index('usage_daily_member_date_idx').on(
+			table.companyMemberId,
 			table.date,
 		),
 	],
 )
-
 /* RELATIONS */
 
 export const profilesRelations = relations(profiles, ({ many }) => ({
@@ -300,6 +226,17 @@ export const companyMembersRelations = relations(
 export const usageEventsRelations = relations(usageEvents, ({ one }) => ({
 	companyMember: one(companyMembers, {
 		fields: [usageEvents.company_member_id],
+		references: [companyMembers.id],
+	}),
+}))
+
+export const usageDailyRelations = relations(usageDaily, ({ one }) => ({
+	company: one(companies, {
+		fields: [usageDaily.companyId],
+		references: [companies.id],
+	}),
+	companyMember: one(companyMembers, {
+		fields: [usageDaily.companyMemberId],
 		references: [companyMembers.id],
 	}),
 }))

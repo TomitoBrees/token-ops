@@ -1,11 +1,4 @@
-import {
-	companyMembers,
-	companyUsageDaily,
-	memberUsageDaily,
-	companyModelUsageDaily,
-	profiles,
-	memberModelUsageDaily,
-} from '@/drizzle/schema'
+import { companyMembers, profiles, usageDaily } from '@/drizzle/schema'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import { getUserCompanyMembership } from '../lib/membership'
 import { and, asc, desc, eq, gte, lte, sum } from 'drizzle-orm'
@@ -42,41 +35,29 @@ export const usageRouter = createTRPCRouter({
 			start.setUTCDate(start.getUTCDate() - (input.period - 1))
 			const startDate = start.toISOString().slice(0, 10)
 
-			const usages =
+			const scopeFilter =
 				effectiveScope === 'company'
-					? await ctx.db
-							.select()
-							.from(companyUsageDaily)
-							.where(
-								and(
-									eq(
-										companyUsageDaily.companyId,
-										membership.company.id,
-									),
-									gte(companyUsageDaily.date, startDate),
-								),
-							)
-							.orderBy(asc(companyUsageDaily.date))
-					: await ctx.db
-							.select()
-							.from(memberUsageDaily)
-							.where(
-								and(
-									eq(
-										memberUsageDaily.companyMemberId,
-										membership.membership.id,
-									),
-									gte(memberUsageDaily.date, startDate),
-								),
-							)
-							.orderBy(asc(memberUsageDaily.date))
+					? eq(usageDaily.companyId, membership.company.id)
+					: eq(usageDaily.companyMemberId, membership.membership.id)
+
+			const usages = await ctx.db
+				.select({
+					date: usageDaily.date,
+					totalCalls: sum(usageDaily.totalCalls),
+					tokensConsumed: sum(usageDaily.tokensConsumed),
+					totalCostUsd: sum(usageDaily.totalCostUsd),
+				})
+				.from(usageDaily)
+				.where(and(scopeFilter, gte(usageDaily.date, startDate)))
+				.groupBy(usageDaily.date)
+				.orderBy(asc(usageDaily.date))
 
 			return usages.map(
 				({ date, totalCalls, tokensConsumed, totalCostUsd }) => ({
 					date,
-					totalCalls,
-					tokensConsumed,
-					totalCostUsd,
+					totalCalls: Number(totalCalls ?? 0),
+					tokensConsumed: Number(tokensConsumed ?? 0),
+					totalCostUsd: totalCostUsd ?? '0',
 				}),
 			)
 		}),
@@ -110,65 +91,23 @@ export const usageRouter = createTRPCRouter({
 			start.setUTCDate(start.getUTCDate() - (input.period - 1))
 			const startDate = start.toISOString().slice(0, 10)
 
-			const topModels =
+			const scopeFilter =
 				effectiveScope === 'company'
-					? await ctx.db
-							.select({
-								model: companyModelUsageDaily.model,
-								totalCalls: sum(
-									companyModelUsageDaily.totalCalls,
-								),
-								tokensConsumed: sum(
-									companyModelUsageDaily.tokensConsumed,
-								),
-								totalCostUsd: sum(
-									companyModelUsageDaily.totalCostUsd,
-								),
-							})
-							.from(companyModelUsageDaily)
-							.where(
-								and(
-									eq(
-										companyModelUsageDaily.companyId,
-										membership.company.id,
-									),
-									gte(companyModelUsageDaily.date, startDate),
-								),
-							)
-							.groupBy(companyModelUsageDaily.model)
-							.orderBy(
-								desc(sum(companyModelUsageDaily.totalCostUsd)),
-							)
-							.limit(3)
-					: await ctx.db
-							.select({
-								model: memberModelUsageDaily.model,
-								totalCalls: sum(
-									memberModelUsageDaily.totalCalls,
-								),
-								tokensConsumed: sum(
-									memberModelUsageDaily.tokensConsumed,
-								),
-								totalCostUsd: sum(
-									memberModelUsageDaily.totalCostUsd,
-								),
-							})
-							.from(memberModelUsageDaily)
-							.where(
-								and(
-									eq(
-										memberModelUsageDaily.companyMemberId,
-										membership.membership.id,
-									),
-									gte(memberModelUsageDaily.date, startDate),
-								),
-							)
-							.groupBy(memberModelUsageDaily.model)
-							.orderBy(
-								desc(sum(memberModelUsageDaily.totalCostUsd)),
-							)
-							.limit(3)
+					? eq(usageDaily.companyId, membership.company.id)
+					: eq(usageDaily.companyMemberId, membership.membership.id)
 
+			const topModels = await ctx.db
+				.select({
+					model: usageDaily.model,
+					totalCalls: sum(usageDaily.totalCalls),
+					tokensConsumed: sum(usageDaily.tokensConsumed),
+					totalCostUsd: sum(usageDaily.totalCostUsd),
+				})
+				.from(usageDaily)
+				.where(and(scopeFilter, gte(usageDaily.date, startDate)))
+				.groupBy(usageDaily.model)
+				.orderBy(desc(sum(usageDaily.totalCostUsd)))
+				.limit(3)
 			return topModels.map(
 				({ model, totalCalls, tokensConsumed, totalCostUsd }) => ({
 					model,
@@ -202,28 +141,28 @@ export const usageRouter = createTRPCRouter({
 				.select({
 					name: profiles.displayName,
 					email: profiles.email,
-					totalCalls: sum(memberUsageDaily.totalCalls),
-					tokensConsumed: sum(memberUsageDaily.tokensConsumed),
-					totalCostUsd: sum(memberUsageDaily.totalCostUsd),
+					totalCalls: sum(usageDaily.totalCalls),
+					tokensConsumed: sum(usageDaily.tokensConsumed),
+					totalCostUsd: sum(usageDaily.totalCostUsd),
 				})
-				.from(memberUsageDaily)
+				.from(usageDaily)
 				.innerJoin(
 					companyMembers,
-					eq(memberUsageDaily.companyMemberId, companyMembers.id),
+					eq(usageDaily.companyMemberId, companyMembers.id),
 				)
 				.innerJoin(profiles, eq(companyMembers.userId, profiles.id))
 				.where(
 					and(
-						eq(memberUsageDaily.companyId, membership.company.id),
-						gte(memberUsageDaily.date, startDate),
+						eq(usageDaily.companyId, membership.company.id),
+						gte(usageDaily.date, startDate),
 					),
 				)
 				.groupBy(
-					memberUsageDaily.companyMemberId,
+					usageDaily.companyMemberId,
 					profiles.displayName,
 					profiles.email,
 				)
-				.orderBy(desc(sum(memberUsageDaily.totalCostUsd)))
+				.orderBy(desc(sum(usageDaily.totalCostUsd)))
 				.limit(8)
 
 			return topUsers.map(
@@ -262,16 +201,16 @@ export const usageRouter = createTRPCRouter({
 
 		const [usage] = await ctx.db
 			.select({
-				totalCalls: sum(companyUsageDaily.totalCalls),
-				tokensConsumed: sum(companyUsageDaily.tokensConsumed),
-				totalCostUsd: sum(companyUsageDaily.totalCostUsd),
+				totalCalls: sum(usageDaily.totalCalls),
+				tokensConsumed: sum(usageDaily.tokensConsumed),
+				totalCostUsd: sum(usageDaily.totalCostUsd),
 			})
-			.from(companyUsageDaily)
+			.from(usageDaily)
 			.where(
 				and(
-					eq(companyUsageDaily.companyId, membership.company.id),
-					gte(companyUsageDaily.date, startDate),
-					lte(companyUsageDaily.date, endDate),
+					eq(usageDaily.companyId, membership.company.id),
+					gte(usageDaily.date, startDate),
+					lte(usageDaily.date, endDate),
 				),
 			)
 
