@@ -1,0 +1,1 @@
+DROP TABLE "company_usage_overview" CASCADE;

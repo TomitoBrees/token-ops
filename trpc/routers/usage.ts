@@ -1,50 +1,53 @@
 import {
 	companyMembers,
 	companyUsageDaily,
-	companyUsageOverview,
 	memberUsageDaily,
 	modelUsageDaily,
 	profiles,
 } from '@/drizzle/schema'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import { getUserCompanyMembership } from '../lib/membership'
-import { and, asc, desc, eq, gte, sum } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, lte, sum } from 'drizzle-orm'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 
 export const usageRouter = createTRPCRouter({
-	getUsageOverview: protectedProcedure.query(async ({ ctx }) => {
-		const userMembership = await getUserCompanyMembership(
-			ctx.db,
-			ctx.user.sub,
-		)
-		if (!userMembership || !userMembership.company) {
+	getCurrentMonthUsage: protectedProcedure.query(async ({ ctx }) => {
+		const membership = await getUserCompanyMembership(ctx.db, ctx.user.sub)
+
+		if (!membership || !membership.company) {
 			throw new TRPCError({
 				code: 'NOT_FOUND',
 				message: 'The current user doesnt have a company',
 			})
 		}
 
-		const usageOverviewData =
-			await ctx.db.query.companyUsageOverview.findFirst({
-				where: eq(
-					companyUsageOverview.companyId,
-					userMembership.company.id,
-				),
-			})
-		if (!usageOverviewData) {
-			throw new TRPCError({
-				code: 'NOT_FOUND',
-				message: 'No usage found for this company',
-			})
-		}
+		const today = new Date()
+		const year = today.getFullYear()
+		const month = today.getMonth()
+		const monthStr = String(month + 1).padStart(2, '0')
+		const startDate = `${year}-${monthStr}-01`
+		const endDate = `${year}-${monthStr}-${String(today.getDate()).padStart(2, '0')}`
 
-		const { totalCalls, tokensConsumed, totalCostUsd } = usageOverviewData
+		const [usage] = await ctx.db
+			.select({
+				totalCalls: sum(companyUsageDaily.totalCalls),
+				tokensConsumed: sum(companyUsageDaily.tokensConsumed),
+				totalCostUsd: sum(companyUsageDaily.totalCostUsd),
+			})
+			.from(companyUsageDaily)
+			.where(
+				and(
+					eq(companyUsageDaily.companyId, membership.company.id),
+					gte(companyUsageDaily.date, startDate),
+					lte(companyUsageDaily.date, endDate),
+				),
+			)
 
 		return {
-			totalCalls,
-			tokensConsumed,
-			totalCostUsd,
+			totalCalls: Number(usage?.totalCalls ?? 0),
+			tokensConsumed: Number(usage?.tokensConsumed ?? 0),
+			totalCostUsd: usage?.totalCostUsd ?? '0',
 		}
 	}),
 

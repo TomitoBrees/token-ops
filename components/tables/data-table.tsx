@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/table'
 import { useTRPC } from '@/trpc/client'
 import { useQuery } from '@tanstack/react-query'
+import { useDashboardPeriod } from '../dashboard/dashboard-period-context'
 
 const PLACEHOLDER_SHARE = 5.5
 
@@ -57,8 +58,10 @@ function DataTableSkeleton() {
 export function DataTable() {
 	const trpc = useTRPC()
 
+	const { period } = useDashboardPeriod()
+
 	const { data: topUsers, isLoading } = useQuery(
-		trpc.usage.getTopUsers.queryOptions(30),
+		trpc.usage.getTopUsers.queryOptions(period),
 	)
 
 	if (isLoading) {

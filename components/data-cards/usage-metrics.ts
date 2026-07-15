@@ -9,8 +9,6 @@ export type CardMetrics = {
 	tokensConsumed: number
 	totalCost: number
 	costPerCall: number
-	currentMonthBudget?: number
-	budgetUsedPercent?: number
 }
 
 const numberFormat = new Intl.NumberFormat('de-DE')
@@ -42,33 +40,15 @@ export function formatPercent(value: number): string {
 	return `${numberFormat.format(Math.round(value * 10) / 10)} %`
 }
 
-export function buildCardMetrics(
-	usage: UsageOverview,
-	budget?: number,
-): CardMetrics {
+export function buildCardMetrics(usage: UsageOverview): CardMetrics {
 	const totalCost = Number(usage.totalCostUsd)
 	const totalCalls = Number(usage.totalCalls)
-
-	const costPerCall = totalCalls > 0 ? totalCost / totalCalls : 0
-	if (!budget) {
-		return {
-			numberOfCalls: totalCalls,
-			tokensConsumed: usage.tokensConsumed,
-			totalCost,
-			costPerCall,
-		}
-	}
-
-	const budgetUsedPercent =
-		budget > 0 ? Math.round((totalCost / budget) * 100) : 0
 
 	return {
 		numberOfCalls: totalCalls,
 		tokensConsumed: usage.tokensConsumed,
 		totalCost,
-		costPerCall,
-		currentMonthBudget: budget,
-		budgetUsedPercent,
+		costPerCall: totalCalls > 0 ? totalCost / totalCalls : 0,
 	}
 }
 
@@ -77,6 +57,24 @@ export type UsageTrendDay = {
 	totalCalls: number
 	tokensConsumed: number
 	totalCostUsd: string
+}
+
+export function buildUsageOverview(rows: UsageTrendDay[]): UsageOverview {
+	let totalCalls = 0
+	let tokensConsumed = 0
+	let totalCostUsd = 0
+
+	for (const row of rows) {
+		totalCalls += row.totalCalls
+		tokensConsumed += row.tokensConsumed
+		totalCostUsd += Number(row.totalCostUsd)
+	}
+
+	return {
+		totalCalls,
+		tokensConsumed,
+		totalCostUsd: String(totalCostUsd),
+	}
 }
 
 export type CumulativeTrendDay = {

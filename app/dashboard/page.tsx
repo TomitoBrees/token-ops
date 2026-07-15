@@ -1,5 +1,7 @@
 import { BudgetChart } from '@/components/charts/budget-chart'
 import { UsageTrendChart } from '@/components/charts/usage-trend-chart'
+import { DashboardHeader } from '@/components/dashboard/dashboard-header'
+import { DashboardPeriodProvider } from '@/components/dashboard/dashboard-period-context'
 import { CardsSection } from '@/components/data-cards/cards-section'
 import { DataTable } from '@/components/tables/data-table'
 import { ModelUsage } from '@/components/usage/model-usage'
@@ -11,7 +13,7 @@ import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 export default async function Page() {
 	const queryClient = getQueryClient()
 
-	await queryClient.prefetchQuery(trpc.usage.getUsageOverview.queryOptions())
+	await queryClient.prefetchQuery(trpc.usage.getCurrentMonthUsage.queryOptions())
 	await queryClient.prefetchQuery(trpc.usage.getUsageTrend.queryOptions(30))
 	await queryClient.prefetchQuery(trpc.usage.getTopUsers.queryOptions(30))
 	await queryClient.prefetchQuery(trpc.usage.getTopModels.queryOptions(30))
@@ -28,9 +30,10 @@ export default async function Page() {
 				} as React.CSSProperties
 			}
 		>
-			<AppSidebar variant="inset" />
-			<SidebarInset>
-				<div className="flex flex-1 flex-col">
+			<AppSidebar variant="sidebar" />
+			<SidebarInset className="bg-muted">
+				<DashboardPeriodProvider>
+					<DashboardHeader />
 					<div className="@container/main flex flex-1 flex-col gap-6 px-4 py-6 lg:px-6">
 						<HydrationBoundary state={dehydrate(queryClient)}>
 							<CardsSection />
@@ -52,7 +55,7 @@ export default async function Page() {
 							<DataTable />
 						</HydrationBoundary>
 					</div>
-				</div>
+				</DashboardPeriodProvider>
 			</SidebarInset>
 		</SidebarProvider>
 	)

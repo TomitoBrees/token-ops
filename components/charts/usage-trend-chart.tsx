@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/chart'
 import { useTRPC } from '@/trpc/client'
 import { useQuery } from '@tanstack/react-query'
+import { useDashboardPeriod } from '../dashboard/dashboard-period-context'
 
 export const description = 'A simple area chart'
 
@@ -31,21 +32,27 @@ const chartConfig = {
 
 export function UsageTrendChart() {
 	const trpc = useTRPC()
+	const { period } = useDashboardPeriod()
 
 	const { data: usage, isLoading: usageLoading } = useQuery(
-		trpc.usage.getUsageTrend.queryOptions(30),
+		trpc.usage.getUsageTrend.queryOptions(period),
 	)
 
-	const chartData = React.useMemo(
-		() =>
-			buildCumulativeTrendData(30, usage ?? []).map(
-				({ date, cumulativeCostUsd }) => ({
-					date,
-					totalCostUsd: cumulativeCostUsd,
-				}),
-			),
-		[usage],
-	)
+	const chartData = React.useMemo(() => {
+		const trendData = buildCumulativeTrendData(period, usage ?? [])
+
+		if (period === 7) {
+			return trendData.map(({ date, dailyCostUsd }) => ({
+				date,
+				cost: dailyCostUsd,
+			}))
+		}
+
+		return trendData.map(({ date, cumulativeCostUsd }) => ({
+			date,
+			cost: cumulativeCostUsd,
+		}))
+	}, [usage, period])
 
 	return (
 		<Card className="pt-0">
@@ -53,7 +60,9 @@ export function UsageTrendChart() {
 				<div className="grid flex-1 gap-1">
 					<CardTitle>Usage trend</CardTitle>
 					<CardDescription>
-						Cumulative spend - Last 30 days
+						{period === 7
+							? 'Daily spend - Last 7 days'
+							: 'Cumulative spend - Last 30 days'}
 					</CardDescription>
 				</div>
 			</CardHeader>
@@ -115,7 +124,7 @@ export function UsageTrendChart() {
 							}
 						/>
 						<Area
-							dataKey="totalCostUsd"
+							dataKey="cost"
 							type="linear"
 							fill="url(#fillCost)"
 							stroke="var(--color-cost)"

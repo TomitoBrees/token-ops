@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useTRPC } from '@/trpc/client'
 import { useQuery } from '@tanstack/react-query'
+import { useDashboardPeriod } from '../dashboard/dashboard-period-context'
 
 const MODEL_PROGRESS_COLORS = [
 	'[&_[data-slot=progress-indicator]]:bg-chart-model-1',
@@ -81,14 +82,11 @@ function ModelUsageRow({
 			</div>
 			<Progress
 				value={sharePercent}
-				className={cn(
-					'h-1.5',
-					MODEL_PROGRESS_COLORS[colorIndex],
-				)}
+				className={cn('h-1.5', MODEL_PROGRESS_COLORS[colorIndex])}
 			/>
 			<p className="text-xs text-muted-foreground tabular-nums">
-				{formatCalls(totalCalls)} calls ·{' '}
-				{formatTokens(tokensConsumed)} tokens
+				{formatCalls(totalCalls)} calls · {formatTokens(tokensConsumed)}{' '}
+				tokens
 			</p>
 		</div>
 	)
@@ -119,8 +117,9 @@ function ModelUsageSkeleton() {
 export function ModelUsage() {
 	const trpc = useTRPC()
 
+	const { period } = useDashboardPeriod()
 	const { data: topModels, isLoading } = useQuery(
-		trpc.usage.getTopModels.queryOptions(30),
+		trpc.usage.getTopModels.queryOptions(period),
 	)
 
 	const modelsWithShare = useMemo(() => {

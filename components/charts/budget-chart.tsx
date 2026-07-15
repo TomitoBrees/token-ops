@@ -12,7 +12,7 @@ import {
 	formatCurrency,
 	formatPercent,
 } from '@/components/data-cards/usage-metrics'
-import { useDashboardMetrics } from '@/components/dashboard/use-dashboard-metrics'
+import { useMonthlyBudget } from '@/components/dashboard/use-monthly-budget'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -136,20 +136,17 @@ function BudgetRadial({ percent }: BudgetRadialProps) {
 }
 
 export function BudgetChart() {
-	const { metrics, isLoading } = useDashboardMetrics()
+	const { metrics, isLoading } = useMonthlyBudget()
 
 	if (isLoading) {
 		return <BudgetChartSkeleton />
 	}
 
-	if (!metrics?.currentMonthBudget || metrics.budgetUsedPercent == null) {
+	if (!metrics) {
 		return null
 	}
 
-	const { totalCost, currentMonthBudget } = metrics
-	const usedPercent =
-		currentMonthBudget > 0 ? (totalCost / currentMonthBudget) * 100 : 0
-	const remaining = Math.max(0, currentMonthBudget - totalCost)
+	const { totalCost, currentMonthBudget, usedPercent, remaining } = metrics
 
 	return (
 		<Card className={cardClassName}>

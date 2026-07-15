@@ -3,19 +3,19 @@
 import { useTRPC } from '@/trpc/client'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
-import { buildCardMetrics } from '../data-cards/usage-metrics'
+import {
+	buildCardMetrics,
+	buildUsageOverview,
+} from '../data-cards/usage-metrics'
 
-export function useDashboardMetrics() {
+export function useDashboardMetrics(period: 7 | 30) {
 	const trpc = useTRPC()
 	const { data: usage, isLoading: usageLoading } = useQuery(
-		trpc.usage.getUsageOverview.queryOptions(),
-	)
-	const { data: budget, isLoading: budgetLoading } = useQuery(
-		trpc.company.getCurrentMonthBudget.queryOptions(),
+		trpc.usage.getUsageTrend.queryOptions(period),
 	)
 	const metrics = useMemo(
-		() => (usage ? buildCardMetrics(usage, budget?.budget) : null),
-		[usage, budget?.budget],
+		() => (usage ? buildCardMetrics(buildUsageOverview(usage)) : null),
+		[usage],
 	)
-	return { metrics, isLoading: usageLoading || budgetLoading }
+	return { metrics, isLoading: usageLoading }
 }

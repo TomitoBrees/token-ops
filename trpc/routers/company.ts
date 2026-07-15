@@ -5,7 +5,6 @@ import {
 	companies,
 	companyBudgets,
 	companyMembers,
-	companyUsageOverview,
 	profiles,
 } from '@/drizzle/schema'
 import { getUserCompanyMembership } from '../lib/membership'
@@ -52,13 +51,6 @@ export const companyRouter = createTRPCRouter({
 					userId: ctx.user.sub,
 					companyId: company.id,
 					role: 'owner',
-				})
-
-				await tx.insert(companyUsageOverview).values({
-					companyId: company.id,
-					totalCalls: 0,
-					tokensConsumed: 0,
-					totalCostUsd: '0',
 				})
 
 				return company

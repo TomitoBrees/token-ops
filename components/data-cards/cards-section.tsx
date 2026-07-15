@@ -15,9 +15,15 @@ import {
 	GaugeIcon,
 } from 'lucide-react'
 import { useDashboardMetrics } from '../dashboard/use-dashboard-metrics'
+import { useDashboardPeriod } from '../dashboard/dashboard-period-context'
+import { useMonthlyBudget } from '../dashboard/use-monthly-budget'
 
 export function CardsSection() {
-	const { metrics, isLoading } = useDashboardMetrics()
+	const { period } = useDashboardPeriod()
+	const { metrics, isLoading: metricsLoading } = useDashboardMetrics(period)
+	const { metrics: monthlyBudget, isLoading: budgetLoading } =
+		useMonthlyBudget()
+	const isLoading = metricsLoading || budgetLoading
 
 	const cardsData: DataCardProps[] | null = metrics
 		? [
@@ -42,18 +48,14 @@ export function CardsSection() {
 			]
 		: null
 
-	if (
-		cardsData &&
-		metrics?.budgetUsedPercent != null &&
-		metrics.currentMonthBudget
-	) {
+	if (cardsData && monthlyBudget) {
 		cardsData.push({
 			variant: 'progress',
 			title: 'Budget used',
-			value: formatPercent(metrics.budgetUsedPercent),
-			description: `${formatCurrency(metrics.totalCost)} of ${formatCurrency(metrics.currentMonthBudget)} this month`,
+			value: formatPercent(monthlyBudget.usedPercent),
+			description: `${formatCurrency(monthlyBudget.totalCost)} of ${formatCurrency(monthlyBudget.currentMonthBudget)} this month`,
 			icon: GaugeIcon,
-			progress: metrics.budgetUsedPercent,
+			progress: monthlyBudget.usedPercent,
 		})
 	}
 
