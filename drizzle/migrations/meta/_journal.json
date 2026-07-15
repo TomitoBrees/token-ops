@@ -113,6 +113,20 @@
       "when": 1784134158221,
       "tag": "0015_daily_secret_warriors",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1784136637544,
+      "tag": "0016_nervous_random",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1784137701820,
+      "tag": "0017_panoramic_bloodstorm",
+      "breakpoints": true
     }
   ]
 }

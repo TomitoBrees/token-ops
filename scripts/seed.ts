@@ -11,11 +11,8 @@ import * as schema from '../drizzle/schema'
 import {
 	companyBudgets,
 	companyMembers,
-	companyModelUsageDaily,
-	companyUsageDaily,
-	memberModelUsageDaily,
-	memberUsageDaily,
 	profiles,
+	usageDaily,
 	usageEvents,
 } from '../drizzle/schema'
 import type { MemberRole } from '../drizzle/schema'
@@ -124,123 +121,6 @@ function createSupabaseAdmin() {
 	})
 }
 
-function generateDailyUsageTrend(dayCount: number) {
-	return Array.from({ length: dayCount }, (_, index) => {
-		const daysBack = dayCount - 1 - index
-		const date = daysAgoUTC(daysBack)
-		const dayOfWeek = new Date(`${date}T00:00:00Z`).getUTCDay()
-		const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-		const variation = ((index * 17 + 13) % 100) / 100
-		const activity = isWeekend
-			? 0.25 + variation * 0.5
-			: 0.6 + variation * 0.8
-
-		const totalCalls = Math.max(
-			1,
-			Math.round((2 + variation * 14) * activity),
-		)
-		const tokensConsumed = Math.round(
-			totalCalls * (700 + variation * 2400) +
-				(isWeekend ? 0 : 400 + variation * 1200),
-		)
-		const totalCostUsd = (
-			tokensConsumed * 0.000009 +
-			totalCalls * 0.004 +
-			variation * 0.015
-		).toFixed(4)
-
-		return {
-			companyId: COMPANY_ID,
-			date,
-			totalCalls,
-			tokensConsumed,
-			totalCostUsd,
-		}
-	})
-}
-
-function generateMemberDailyUsage(members: SeedMember[], dayCount: number) {
-	return members.flatMap((member, memberIndex) =>
-		Array.from({ length: dayCount }, (_, index) => {
-			const daysBack = dayCount - 1 - index
-			const date = daysAgoUTC(daysBack)
-			const dayOfWeek = new Date(`${date}T00:00:00Z`).getUTCDay()
-			const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-			const variation = ((index * 19 + memberIndex * 11 + 7) % 100) / 100
-			const activity = isWeekend
-				? 0.2 + variation * 0.45
-				: 0.55 + variation * 0.75
-
-			const totalCalls = Math.max(
-				0,
-				Math.round((1 + variation * 10) * activity * member.activity),
-			)
-
-			if (totalCalls === 0) {
-				return null
-			}
-
-			const tokensConsumed = Math.round(
-				totalCalls * (600 + variation * 2000) +
-					(isWeekend ? 0 : 250 + variation * 900),
-			)
-			const totalCostUsd = (
-				tokensConsumed * 0.000009 +
-				totalCalls * 0.0035 +
-				variation * 0.012 * member.activity
-			).toFixed(4)
-
-			return {
-				companyMemberId: member.companyMemberId,
-				companyId: COMPANY_ID,
-				date,
-				totalCalls,
-				tokensConsumed,
-				totalCostUsd,
-			}
-		}).filter((row) => row !== null),
-	)
-}
-
-function generateModelDailyUsage(dayCount: number) {
-	return MOCK_MODELS.flatMap((mockModel, modelIndex) =>
-		Array.from({ length: dayCount }, (_, index) => {
-			const daysBack = dayCount - 1 - index
-			const date = daysAgoUTC(daysBack)
-			const dayOfWeek = new Date(`${date}T00:00:00Z`).getUTCDay()
-			const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-			const variation = ((index * 23 + modelIndex * 9 + 5) % 100) / 100
-			const activity = isWeekend
-				? 0.22 + variation * 0.42
-				: 0.58 + variation * 0.72
-
-			const totalCalls = Math.max(
-				1,
-				Math.round((1 + variation * 8) * activity * mockModel.activity),
-			)
-			const tokensConsumed = Math.round(
-				totalCalls *
-					mockModel.tokensPerCall *
-					(0.85 + variation * 0.35),
-			)
-			const totalCostUsd = (
-				tokensConsumed * 0.000009 * mockModel.costMultiplier +
-				totalCalls * 0.004 * mockModel.costMultiplier +
-				variation * 0.01
-			).toFixed(4)
-
-			return {
-				companyId: COMPANY_ID,
-				model: mockModel.model,
-				date,
-				totalCalls,
-				tokensConsumed,
-				totalCostUsd,
-			}
-		}),
-	)
-}
-
 const MEMBER_MODEL_AFFINITY = [
 	[0.9, 0.75, 0.85],
 	[1.15, 1.05, 0.45],
@@ -251,10 +131,12 @@ const MEMBER_MODEL_AFFINITY = [
 	[0.45, 0.2, 1.1],
 ] as const
 
-function generateMemberModelDailyUsage(
-	members: SeedMember[],
-	dayCount: number,
-) {
+/**
+ * Generates rows at the `usage_daily` grain: one row per
+ * (company_member, model, date). All coarser views (company totals,
+ * per-member totals, per-model totals) are derived from this at query time.
+ */
+function generateUsageDaily(members: SeedMember[], dayCount: number) {
 	return members.flatMap((member, memberIndex) =>
 		MOCK_MODELS.flatMap((mockModel, modelIndex) => {
 			const affinity =
@@ -399,128 +281,41 @@ function tokensConsumed(event: (typeof MOCK_USAGE_EVENTS)[number]) {
 
 async function ensureUsageDailyTable(client: Sql) {
 	await client.unsafe(`
-    CREATE TABLE IF NOT EXISTS "company_usage_daily" (
+    CREATE TABLE IF NOT EXISTS "usage_daily" (
       "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-      "company_id" uuid,
+      "company_id" uuid NOT NULL,
+      "company_member_id" uuid NOT NULL,
+      "model" text DEFAULT 'unknown' NOT NULL,
       "date" date NOT NULL,
       "total_calls" integer DEFAULT 0 NOT NULL,
       "tokens_consumed" integer DEFAULT 0 NOT NULL,
       "total_cost_usd" numeric DEFAULT '0' NOT NULL,
       "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-      CONSTRAINT "company_usage_daily_company_date_unique" UNIQUE("company_id","date")
+      CONSTRAINT "usage_daily_member_model_date_unique" UNIQUE("company_member_id","model","date")
     );
 
     DO $$ BEGIN
-      ALTER TABLE "company_usage_daily"
-        ADD CONSTRAINT "company_usage_daily_company_id_companies_id_fk"
+      ALTER TABLE "usage_daily"
+        ADD CONSTRAINT "usage_daily_company_id_companies_id_fk"
         FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id")
         ON DELETE no action ON UPDATE no action;
     EXCEPTION
       WHEN duplicate_object THEN NULL;
     END $$;
-  `)
-}
-
-async function ensureMemberUsageDailyTable(client: Sql) {
-	await client.unsafe(`
-    CREATE TABLE IF NOT EXISTS "member_usage_daily" (
-      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-      "company_member_id" uuid,
-      "company_id" uuid,
-      "date" date NOT NULL,
-      "total_calls" integer DEFAULT 0 NOT NULL,
-      "tokens_consumed" integer DEFAULT 0 NOT NULL,
-      "total_cost_usd" numeric DEFAULT '0' NOT NULL,
-      "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-      CONSTRAINT "member_usage_daily_member_date_unique" UNIQUE("company_member_id","date")
-    );
 
     DO $$ BEGIN
-      ALTER TABLE "member_usage_daily"
-        ADD CONSTRAINT "member_usage_daily_company_member_id_company_members_id_fk"
+      ALTER TABLE "usage_daily"
+        ADD CONSTRAINT "usage_daily_company_member_id_company_members_id_fk"
         FOREIGN KEY ("company_member_id") REFERENCES "public"."company_members"("id")
         ON DELETE no action ON UPDATE no action;
     EXCEPTION
       WHEN duplicate_object THEN NULL;
     END $$;
 
-    DO $$ BEGIN
-      ALTER TABLE "member_usage_daily"
-        ADD CONSTRAINT "member_usage_daily_company_id_companies_id_fk"
-        FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id")
-        ON DELETE no action ON UPDATE no action;
-    EXCEPTION
-      WHEN duplicate_object THEN NULL;
-    END $$;
-
-    CREATE INDEX IF NOT EXISTS "member_usage_daily_company_date_idx"
-      ON "member_usage_daily" ("company_id", "date");
-  `)
-}
-
-async function ensureCompanyModelUsageDailyTable(client: Sql) {
-	await client.unsafe(`
-    CREATE TABLE IF NOT EXISTS "company_model_usage_daily" (
-      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-      "company_id" uuid,
-      "model" text NOT NULL,
-      "date" date NOT NULL,
-      "total_calls" integer DEFAULT 0 NOT NULL,
-      "tokens_consumed" integer DEFAULT 0 NOT NULL,
-      "total_cost_usd" numeric DEFAULT '0' NOT NULL,
-      "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-      CONSTRAINT "company_model_usage_daily_company_model_date_unique" UNIQUE("company_id","model","date")
-    );
-
-    DO $$ BEGIN
-      ALTER TABLE "company_model_usage_daily"
-        ADD CONSTRAINT "company_model_usage_daily_company_id_companies_id_fk"
-        FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id")
-        ON DELETE no action ON UPDATE no action;
-    EXCEPTION
-      WHEN duplicate_object THEN NULL;
-    END $$;
-
-    CREATE INDEX IF NOT EXISTS "company_model_usage_daily_company_date_idx"
-      ON "company_model_usage_daily" ("company_id", "date");
-  `)
-}
-
-async function ensureMemberModelUsageDailyTable(client: Sql) {
-	await client.unsafe(`
-    CREATE TABLE IF NOT EXISTS "member_model_usage_daily" (
-      "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-      "company_member_id" uuid,
-      "company_id" uuid,
-      "model" text NOT NULL,
-      "date" date NOT NULL,
-      "total_calls" integer DEFAULT 0 NOT NULL,
-      "tokens_consumed" integer DEFAULT 0 NOT NULL,
-      "total_cost_usd" numeric DEFAULT '0' NOT NULL,
-      "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-      CONSTRAINT "member_model_usage_daily_member_model_date_unique" UNIQUE("company_member_id","model","date")
-    );
-
-    DO $$ BEGIN
-      ALTER TABLE "member_model_usage_daily"
-        ADD CONSTRAINT "member_model_usage_daily_company_member_id_company_members_id_fk"
-        FOREIGN KEY ("company_member_id") REFERENCES "public"."company_members"("id")
-        ON DELETE no action ON UPDATE no action;
-    EXCEPTION
-      WHEN duplicate_object THEN NULL;
-    END $$;
-
-    DO $$ BEGIN
-      ALTER TABLE "member_model_usage_daily"
-        ADD CONSTRAINT "member_model_usage_daily_company_id_companies_id_fk"
-        FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id")
-        ON DELETE no action ON UPDATE no action;
-    EXCEPTION
-      WHEN duplicate_object THEN NULL;
-    END $$;
-
-    CREATE INDEX IF NOT EXISTS "member_model_usage_daily_member_date_idx "
-      ON "member_model_usage_daily" ("company_id", "date");
+    CREATE INDEX IF NOT EXISTS "usage_daily_company_date_idx"
+      ON "usage_daily" ("company_id", "date");
+    CREATE INDEX IF NOT EXISTS "usage_daily_member_date_idx"
+      ON "usage_daily" ("company_member_id", "date");
   `)
 }
 
@@ -543,15 +338,7 @@ async function cleanupSeedMembers(
 ) {
 	const seedEmails = MOCK_TEAM.map((member) => member.email)
 
-	await db
-		.delete(memberUsageDaily)
-		.where(eq(memberUsageDaily.companyId, COMPANY_ID))
-	await db
-		.delete(memberModelUsageDaily)
-		.where(eq(memberModelUsageDaily.companyId, COMPANY_ID))
-	await db
-		.delete(companyModelUsageDaily)
-		.where(eq(companyModelUsageDaily.companyId, COMPANY_ID))
+	await db.delete(usageDaily).where(eq(usageDaily.companyId, COMPANY_ID))
 
 	const seedProfiles = await db
 		.select({ id: profiles.id, email: profiles.email })
@@ -651,9 +438,6 @@ async function main() {
 	const db = drizzle(client, { schema })
 
 	await ensureUsageDailyTable(client)
-	await ensureMemberUsageDailyTable(client)
-	await ensureCompanyModelUsageDailyTable(client)
-	await ensureMemberModelUsageDailyTable(client)
 
 	console.log('Clearing existing seed data...')
 	await cleanupSeedMembers(db, supabase)
@@ -664,9 +448,6 @@ async function main() {
 	await db
 		.delete(companyBudgets)
 		.where(eq(companyBudgets.companyId, COMPANY_ID))
-	await db
-		.delete(companyUsageDaily)
-		.where(eq(companyUsageDaily.companyId, COMPANY_ID))
 
 	console.log('Creating mock company members...')
 	const seededMembers = await Promise.all(
@@ -689,7 +470,7 @@ async function main() {
 
 	console.log('Seeding usage_events...')
 	await db.execute(
-		sql`ALTER TABLE usage_events DISABLE TRIGGER usage_events_sync_overview`,
+		sql`ALTER TABLE usage_events DISABLE TRIGGER USER`,
 	)
 
 	const insertedEvents = await db
@@ -703,7 +484,7 @@ async function main() {
 		.returning({ id: usageEvents.id })
 
 	await db.execute(
-		sql`ALTER TABLE usage_events ENABLE TRIGGER usage_events_sync_overview`,
+		sql`ALTER TABLE usage_events ENABLE TRIGGER USER`,
 	)
 
 	const totalCalls = insertedEvents.length
@@ -716,75 +497,19 @@ async function main() {
 		0,
 	).toFixed(4)
 
-	const dailyTrend = generateDailyUsageTrend(TREND_DAYS)
-	const memberDailyUsage = generateMemberDailyUsage(allMembers, TREND_DAYS)
-	const modelDailyUsage = generateModelDailyUsage(TREND_DAYS)
-	const memberModelDailyUsage = generateMemberModelDailyUsage(
-		allMembers,
-		TREND_DAYS,
-	)
-
-	console.log(`Seeding company_usage_daily (${TREND_DAYS} days)...`)
-	await db
-		.insert(companyUsageDaily)
-		.values(dailyTrend)
-		.onConflictDoUpdate({
-			target: [companyUsageDaily.companyId, companyUsageDaily.date],
-			set: {
-				totalCalls: sql`excluded.total_calls`,
-				tokensConsumed: sql`excluded.tokens_consumed`,
-				totalCostUsd: sql`excluded.total_cost_usd`,
-				updatedAt: new Date(),
-			},
-		})
+	const usageDailyRows = generateUsageDaily(allMembers, TREND_DAYS)
 
 	console.log(
-		`Seeding member_usage_daily (${TREND_DAYS} days, ${allMembers.length} members)...`,
+		`Seeding usage_daily (${TREND_DAYS} days, ${allMembers.length} members × ${MOCK_MODELS.length} models)...`,
 	)
 	await db
-		.insert(memberUsageDaily)
-		.values(memberDailyUsage)
-		.onConflictDoUpdate({
-			target: [memberUsageDaily.companyMemberId, memberUsageDaily.date],
-			set: {
-				totalCalls: sql`excluded.total_calls`,
-				tokensConsumed: sql`excluded.tokens_consumed`,
-				totalCostUsd: sql`excluded.total_cost_usd`,
-				updatedAt: new Date(),
-			},
-		})
-
-	console.log(
-		`Seeding company_model_usage_daily (${TREND_DAYS} days, ${MOCK_MODELS.length} models)...`,
-	)
-	await db
-		.insert(companyModelUsageDaily)
-		.values(modelDailyUsage)
+		.insert(usageDaily)
+		.values(usageDailyRows)
 		.onConflictDoUpdate({
 			target: [
-				companyModelUsageDaily.companyId,
-				companyModelUsageDaily.model,
-				companyModelUsageDaily.date,
-			],
-			set: {
-				totalCalls: sql`excluded.total_calls`,
-				tokensConsumed: sql`excluded.tokens_consumed`,
-				totalCostUsd: sql`excluded.total_cost_usd`,
-				updatedAt: new Date(),
-			},
-		})
-
-	console.log(
-		`Seeding member_model_usage_daily (${TREND_DAYS} days, ${allMembers.length} members × ${MOCK_MODELS.length} models)...`,
-	)
-	await db
-		.insert(memberModelUsageDaily)
-		.values(memberModelDailyUsage)
-		.onConflictDoUpdate({
-			target: [
-				memberModelUsageDaily.companyMemberId,
-				memberModelUsageDaily.model,
-				memberModelUsageDaily.date,
+				usageDaily.companyMemberId,
+				usageDaily.model,
+				usageDaily.date,
 			],
 			set: {
 				totalCalls: sql`excluded.total_calls`,
@@ -820,10 +545,8 @@ async function main() {
 		tokensConsumed: totalTokens,
 		totalCostUsd,
 		usageTrendDays: TREND_DAYS,
-		usageTrendRange: `${dailyTrend[0].date} → ${dailyTrend.at(-1)?.date}`,
-		memberUsageRows: memberDailyUsage.length,
-		companyModelUsageRows: modelDailyUsage.length,
-		memberModelUsageRows: memberModelDailyUsage.length,
+		usageTrendRange: `${daysAgoUTC(TREND_DAYS - 1)} → ${daysAgoUTC(0)}`,
+		usageDailyRows: usageDailyRows.length,
 		models: MOCK_MODELS.map((mockModel) => mockModel.model).join(', '),
 		topMembers: allMembers.map((member) => member.displayName).join(', '),
 		mockMemberPassword: SEED_PASSWORD,
