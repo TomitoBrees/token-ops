@@ -1,5 +1,7 @@
 'use client'
 
+import { useMemo } from 'react'
+
 import {
 	formatCalls,
 	formatCurrency,
@@ -21,8 +23,7 @@ import {
 import { useTRPC } from '@/trpc/client'
 import { useQuery } from '@tanstack/react-query'
 import { useDashboardPeriod } from '../dashboard/dashboard-period-context'
-
-const PLACEHOLDER_SHARE = 5.5
+import { useDashboardMetrics } from '../dashboard/use-dashboard-metrics'
 
 function getInitials(name: string | null): string {
 	if (!name) return '?'
@@ -60,11 +61,35 @@ export function DataTable() {
 
 	const { period } = useDashboardPeriod()
 
-	const { data: topUsers, isLoading } = useQuery(
+	const { metrics, isLoading: metricsLoading } = useDashboardMetrics(period)
+	const { data: topUsers, isLoading: topUsersLoading } = useQuery(
 		trpc.usage.getTopUsers.queryOptions(period),
 	)
 
-	if (isLoading) {
+	const usersWithShare = useMemo(() => {
+		if (!topUsers?.length || !metrics) return []
+
+		const totalTokens = metrics.tokensConsumed
+		const withShare = topUsers.map((user) => ({
+			...user,
+			sharePercent:
+				totalTokens > 0 ? (user.tokensConsumed / totalTokens) * 100 : 0,
+		}))
+
+		const topShare = withShare[0]?.sharePercent ?? 0
+
+		return withShare.map((user, index) => ({
+			...user,
+			barPercent:
+				index === 0
+					? 100
+					: topShare > 0
+						? (user.sharePercent / topShare) * 100
+						: 0,
+		}))
+	}, [topUsers, metrics])
+
+	if (metricsLoading || topUsersLoading) {
 		return <DataTableSkeleton />
 	}
 
@@ -96,7 +121,7 @@ export function DataTable() {
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{topUsers?.map((user) => (
+							{usersWithShare.map((user) => (
 								<TableRow key={user.email}>
 									<TableCell className="px-4 py-3">
 										<div className="flex items-center gap-3">
@@ -129,12 +154,12 @@ export function DataTable() {
 									<TableCell className="px-4 py-3 pl-8">
 										<div className="flex items-center gap-3">
 											<Progress
-												value={PLACEHOLDER_SHARE}
+												value={user.barPercent}
 												className="h-1.5"
 											/>
 											<span className="w-12 shrink-0 text-right text-sm tabular-nums">
 												{formatPercent(
-													PLACEHOLDER_SHARE,
+													user.sharePercent,
 												)}
 											</span>
 										</div>
