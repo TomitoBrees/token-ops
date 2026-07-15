@@ -32,10 +32,13 @@ const chartConfig = {
 
 export function UsageTrendChart() {
 	const trpc = useTRPC()
-	const { period } = useDashboardPeriod()
+	const { period, scope } = useDashboardPeriod()
 
 	const { data: usage, isLoading: usageLoading } = useQuery(
-		trpc.usage.getUsageTrend.queryOptions(period),
+		trpc.usage.getDailyUsage.queryOptions({
+			period,
+			scope,
+		}),
 	)
 
 	const chartData = React.useMemo(() => {

@@ -20,20 +20,11 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/components/ui/table'
+import { getInitials } from '@/lib/utils'
 import { useTRPC } from '@/trpc/client'
 import { useQuery } from '@tanstack/react-query'
 import { useDashboardPeriod } from '../dashboard/dashboard-period-context'
 import { useDashboardMetrics } from '../dashboard/use-dashboard-metrics'
-
-function getInitials(name: string | null): string {
-	if (!name) return '?'
-
-	const parts = name.trim().split(/\s+/).filter(Boolean)
-	if (parts.length === 0) return '?'
-	if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-
-	return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
-}
 
 const cardClassName = 'border border-border shadow-sm ring-0'
 
@@ -63,7 +54,7 @@ export function DataTable() {
 
 	const { metrics, isLoading: metricsLoading } = useDashboardMetrics(period)
 	const { data: topUsers, isLoading: topUsersLoading } = useQuery(
-		trpc.usage.getTopUsers.queryOptions(period),
+		trpc.usage.listTopConsumersByUsage.queryOptions(period),
 	)
 
 	const usersWithShare = useMemo(() => {

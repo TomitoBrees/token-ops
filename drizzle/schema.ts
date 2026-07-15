@@ -215,8 +215,8 @@ export const memberUsageDaily = pgTable(
 	],
 )
 
-export const modelUsageDaily = pgTable(
-	'model_usage_daily',
+export const companyModelUsageDaily = pgTable(
+	'company_model_usage_daily',
 	{
 		id: uuid('id').primaryKey().defaultRandom(),
 		companyId: uuid('company_id').references(() => companies.id),
@@ -236,6 +236,36 @@ export const modelUsageDaily = pgTable(
 			table.date,
 		),
 		index('company_model_usage_daily_company_date_idx').on(
+			table.companyId,
+			table.date,
+		),
+	],
+)
+
+export const memberModelUsageDaily = pgTable(
+	'member_model_usage_daily',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		companyMemberId: uuid('company_member_id').references(
+			() => companyMembers.id,
+		),
+		companyId: uuid('company_id').references(() => companies.id),
+		model: text('model').notNull(),
+		date: date('date').notNull(),
+		totalCalls: integer('total_calls').notNull().default(0),
+		tokensConsumed: integer('tokens_consumed').notNull().default(0),
+		totalCostUsd: numeric('total_cost_usd').notNull().default('0'),
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		unique('member_model_usage_daily_member_model_date_unique').on(
+			table.companyMemberId,
+			table.model,
+			table.date,
+		),
+		index('member_model_usage_daily_member_date_idx ').on(
 			table.companyId,
 			table.date,
 		),

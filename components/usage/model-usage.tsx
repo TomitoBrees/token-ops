@@ -117,9 +117,12 @@ function ModelUsageSkeleton() {
 export function ModelUsage() {
 	const trpc = useTRPC()
 
-	const { period } = useDashboardPeriod()
+	const { period, scope } = useDashboardPeriod()
 	const { data: topModels, isLoading } = useQuery(
-		trpc.usage.getTopModels.queryOptions(period),
+		trpc.usage.listTopModelsByCost.queryOptions({
+			period,
+			scope,
+		}),
 	)
 
 	const modelsWithShare = useMemo(() => {
