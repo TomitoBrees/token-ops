@@ -206,7 +206,18 @@ export const profilesRelations = relations(profiles, ({ many }) => ({
 
 export const companiesRelations = relations(companies, ({ many }) => ({
 	members: many(companyMembers),
+	invitations: many(companyInvitations),
 }))
+
+export const companyInvitationsRelations = relations(
+	companyInvitations,
+	({ one }) => ({
+		company: one(companies, {
+			fields: [companyInvitations.company_id],
+			references: [companies.id],
+		}),
+	}),
+)
 
 export const companyMembersRelations = relations(
 	companyMembers,
