@@ -1,9 +1,10 @@
 'use client'
 
 import { useMutation } from '@tanstack/react-query'
-import { MailCheckIcon } from 'lucide-react'
+import { CircleAlertIcon, CircleCheckIcon, MailCheckIcon } from 'lucide-react'
 import { useState, type SubmitEvent } from 'react'
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
 	Dialog,
@@ -25,20 +26,12 @@ type InviteRole = 'developer' | 'owner'
 
 export function InviteMemberDialog() {
 	const trpc = useTRPC()
+	const [open, setOpen] = useState(false)
 	const [email, setEmail] = useState('')
 	const [role, setRole] = useState<InviteRole>('developer')
 
 	const inviteMember = useMutation(
-		trpc.invitation.inviteMember.mutationOptions({
-			onSuccess: () => {
-				console.log('Invitation Sent')
-				setEmail('')
-				setRole('developer')
-			},
-			onError: (err) => {
-				console.log(err.message)
-			},
-		}),
+		trpc.invitation.inviteMember.mutationOptions(),
 	)
 
 	const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
@@ -46,8 +39,17 @@ export function InviteMemberDialog() {
 		inviteMember.mutate({ email, role })
 	}
 
+	const handleOpenChange = (nextOpen: boolean) => {
+		setOpen(nextOpen)
+		if (!nextOpen) {
+			inviteMember.reset()
+			setEmail('')
+			setRole('developer')
+		}
+	}
+
 	return (
-		<Dialog>
+		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<SidebarMenuItem className="flex items-center gap-2">
 				<DialogTrigger asChild>
 					<SidebarMenuButton
@@ -68,72 +70,103 @@ export function InviteMemberDialog() {
 					</DialogDescription>
 				</DialogHeader>
 
-				<form id="invite-member-form" onSubmit={handleSubmit}>
-					<FieldGroup>
-						<Field>
-							<FieldLabel htmlFor="invite-email">
-								Email
-							</FieldLabel>
-							<Input
-								id="invite-email"
-								type="email"
-								name="email"
-								placeholder="name@company.com"
-								value={email}
-								onChange={(e) => setEmail(e.target.value)}
-								required
-							/>
-						</Field>
+				{inviteMember.isSuccess ? (
+					<Alert>
+						<CircleCheckIcon />
+						<AlertTitle>Invitation sent</AlertTitle>
+						<AlertDescription>
+							An invitation email was sent to{' '}
+							{inviteMember.data.email}.
+						</AlertDescription>
+					</Alert>
+				) : (
+					<form id="invite-member-form" onSubmit={handleSubmit}>
+						<FieldGroup>
+							{inviteMember.isError && (
+								<Alert variant="destructive">
+									<CircleAlertIcon />
+									<AlertTitle>
+										Invitation failed
+									</AlertTitle>
+									<AlertDescription>
+										{inviteMember.error.message}
+									</AlertDescription>
+								</Alert>
+							)}
 
-						<Field>
-							<FieldLabel id="invite-role-label">Role</FieldLabel>
-							<ToggleGroup
-								type="single"
-								variant="outline"
-								value={role}
-								onValueChange={(value) => {
-									if (
-										value === 'developer' ||
-										value === 'owner'
-									) {
-										setRole(value)
-									}
-								}}
-								aria-labelledby="invite-role-label"
-								className="w-full"
-							>
-								<ToggleGroupItem
-									value="developer"
-									aria-label="Member"
-									className="flex-1"
+							<Field>
+								<FieldLabel htmlFor="invite-email">
+									Email
+								</FieldLabel>
+								<Input
+									id="invite-email"
+									type="email"
+									name="email"
+									placeholder="name@company.com"
+									value={email}
+									onChange={(e) => setEmail(e.target.value)}
+									required
+								/>
+							</Field>
+
+							<Field>
+								<FieldLabel id="invite-role-label">Role</FieldLabel>
+								<ToggleGroup
+									type="single"
+									variant="outline"
+									value={role}
+									onValueChange={(value) => {
+										if (
+											value === 'developer' ||
+											value === 'owner'
+										) {
+											setRole(value)
+										}
+									}}
+									aria-labelledby="invite-role-label"
+									className="w-full"
 								>
-									Member
-								</ToggleGroupItem>
-								<ToggleGroupItem
-									value="owner"
-									aria-label="Admin"
-									className="flex-1"
-								>
-									Admin
-								</ToggleGroupItem>
-							</ToggleGroup>
-						</Field>
-					</FieldGroup>
-				</form>
+									<ToggleGroupItem
+										value="developer"
+										aria-label="Member"
+										className="flex-1"
+									>
+										Member
+									</ToggleGroupItem>
+									<ToggleGroupItem
+										value="owner"
+										aria-label="Admin"
+										className="flex-1"
+									>
+										Admin
+									</ToggleGroupItem>
+								</ToggleGroup>
+							</Field>
+						</FieldGroup>
+					</form>
+				)}
 
 				<DialogFooter>
-					<DialogClose asChild>
-						<Button type="button" variant="outline">
-							Cancel
-						</Button>
-					</DialogClose>
-					<Button
-						type="submit"
-						form="invite-member-form"
-						disabled={inviteMember.isPending}
-					>
-						Send invite
-					</Button>
+					{inviteMember.isSuccess ? (
+						<DialogClose asChild>
+							<Button type="button">Close</Button>
+						</DialogClose>
+					) : (
+						<>
+							<DialogClose asChild>
+								<Button type="button" variant="outline">
+									Cancel
+								</Button>
+							</DialogClose>
+							<Button
+								type="submit"
+								form="invite-member-form"
+								disabled={inviteMember.isPending}
+							>
+								Send invite
+							</Button>
+						</>
+					)}
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
