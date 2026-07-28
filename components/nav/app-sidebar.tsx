@@ -9,6 +9,7 @@ import {
 	SquareChartGanttIcon,
 } from 'lucide-react'
 
+import { ConnectIdeGuide } from '@/components/connect-ide/connect-ide-guide'
 import { NavMain } from '@/components/nav/nav-main'
 import { NavSecondary } from '@/components/nav/nav-secondary'
 import { NavUser } from '@/components/nav/nav-user'
@@ -41,11 +42,6 @@ const data = {
 		},
 	],
 	navSecondary: [
-		{
-			title: 'Connect your IDE',
-			url: '#',
-			icon: BookOpen,
-		},
 		{
 			title: 'Settings',
 			url: '#',
@@ -80,7 +76,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			</SidebarHeader>
 			<SidebarContent>
 				<NavMain items={data.navMain} />
-				<NavSecondary items={data.navSecondary} className="mt-auto" />
+				<NavSecondary items={data.navSecondary} className="mt-auto">
+					<SidebarMenuItem>
+						<ConnectIdeGuide>
+							<SidebarMenuButton>
+								<BookOpen />
+								<span>Connect your IDE</span>
+							</SidebarMenuButton>
+						</ConnectIdeGuide>
+					</SidebarMenuItem>
+				</NavSecondary>
 			</SidebarContent>
 			<SidebarFooter>
 				<NavUser user={data.user} />

@@ -13,6 +13,7 @@ import {
 
 export function NavSecondary({
 	items,
+	children,
 	...props
 }: {
 	items: {
@@ -25,6 +26,7 @@ export function NavSecondary({
 		<SidebarGroup {...props}>
 			<SidebarGroupContent>
 				<SidebarMenu>
+					{children}
 					{items.map((item) => (
 						<SidebarMenuItem key={item.title}>
 							<SidebarMenuButton asChild>

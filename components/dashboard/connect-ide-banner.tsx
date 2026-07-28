@@ -1,5 +1,6 @@
 import { BookIcon } from 'lucide-react'
 
+import { ConnectIdeGuide } from '@/components/connect-ide/connect-ide-guide'
 import { Button } from '@/components/ui/button'
 import {
 	Item,
@@ -12,7 +13,10 @@ import {
 
 export function ConnectIdeBanner() {
 	return (
-		<Item variant="outline" className="w-full border-warning/20 bg-warning/10">
+		<Item
+			variant="outline"
+			className="w-full border-warning/20 bg-warning/10"
+		>
 			<ItemMedia variant="icon" className="text-warning">
 				<BookIcon />
 			</ItemMedia>
@@ -24,9 +28,11 @@ export function ConnectIdeBanner() {
 				</ItemDescription>
 			</ItemContent>
 			<ItemActions>
-				<Button size="sm" variant="outline">
-					Open setup guide
-				</Button>
+				<ConnectIdeGuide>
+					<Button size="sm" variant="outline">
+						Open setup guide
+					</Button>
+				</ConnectIdeGuide>
 			</ItemActions>
 		</Item>
 	)
