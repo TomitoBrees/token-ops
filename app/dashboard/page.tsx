@@ -29,6 +29,7 @@ export default async function Page() {
 			scope: 'personal',
 		}),
 	)
+	await queryClient.prefetchQuery(trpc.usage.isFirstUse.queryOptions())
 	await queryClient.prefetchQuery(
 		trpc.company.getCurrentMonthBudget.queryOptions(),
 	)

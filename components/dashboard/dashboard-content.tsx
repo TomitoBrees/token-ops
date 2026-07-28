@@ -6,14 +6,20 @@ import { CardsSection } from '@/components/data-cards/cards-section'
 import { DataTable } from '@/components/tables/data-table'
 import { ModelUsage } from '@/components/usage/model-usage'
 
+import { ConnectIdeBanner } from './connect-ide-banner'
 import { useDashboardPeriod } from './dashboard-period-context'
+import { useTRPC } from '@/trpc/client'
+import { useQuery } from '@tanstack/react-query'
 
 export function DashboardContent() {
 	const { scope } = useDashboardPeriod()
+	const trpc = useTRPC()
+	const { data: isFirstUse } = useQuery(trpc.usage.isFirstUse.queryOptions())
 
 	if (scope === 'personal') {
 		return (
 			<>
+				{isFirstUse && <ConnectIdeBanner />}
 				<CardsSection />
 				<div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
 					<div className="h-full xl:col-span-2">

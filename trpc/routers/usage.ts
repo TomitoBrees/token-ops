@@ -1,7 +1,7 @@
 import { companyMembers, profiles, usageDaily } from '@/drizzle/schema'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import { getUserCompanyMembership } from '../lib/membership'
-import { and, asc, desc, eq, gte, lte, sum } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, lte, sum } from 'drizzle-orm'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 
@@ -219,5 +219,21 @@ export const usageRouter = createTRPCRouter({
 			tokensConsumed: Number(usage?.tokensConsumed ?? 0),
 			totalCostUsd: usage?.totalCostUsd ?? '0',
 		}
+	}),
+	isFirstUse: protectedProcedure.query(async ({ ctx }) => {
+		const membership = await getUserCompanyMembership(ctx.db, ctx.user.sub)
+		if (!membership || !membership.company) {
+			throw new TRPCError({
+				code: 'NOT_FOUND',
+				message: 'The current user doesnt have a company',
+			})
+		}
+
+		const usageCount = await ctx.db
+			.select({ count: count() })
+			.from(usageDaily)
+			.where(eq(usageDaily.companyMemberId, membership.membership.id))
+
+		return usageCount[0].count === 0
 	}),
 })
