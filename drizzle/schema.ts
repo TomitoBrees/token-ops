@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm'
+import { relations, sql } from 'drizzle-orm'
 import {
 	pgSchema,
 	pgTable,
@@ -11,6 +11,7 @@ import {
 	integer,
 	numeric,
 	date,
+	check,
 } from 'drizzle-orm/pg-core'
 
 const authSchema = pgSchema('auth')
@@ -146,6 +147,16 @@ export const usageEvents = pgTable(
 		input_tokens: integer('input_tokens').notNull().default(0),
 		output_tokens: integer('output_tokens').notNull().default(0),
 		cache_creation_input_tokens: integer('cache_creation_input_tokens')
+			.notNull()
+			.default(0),
+		cache_creation_5m_input_tokens: integer(
+			'cache_creation_5m_input_tokens',
+		)
+			.notNull()
+			.default(0),
+		cache_creation_1h_input_tokens: integer(
+			'cache_creation_1h_input_tokens',
+		)
 			.notNull()
 			.default(0),
 		cache_read_input_tokens: integer('cache_read_input_tokens')

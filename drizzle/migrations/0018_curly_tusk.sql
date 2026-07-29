@@ -1,0 +1,2 @@
+ALTER TABLE "usage_events" ADD COLUMN "cache_creation_5m_input_tokens" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "usage_events" ADD COLUMN "cache_creation_1h_input_tokens" integer DEFAULT 0 NOT NULL;

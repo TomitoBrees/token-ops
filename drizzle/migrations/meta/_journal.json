@@ -127,6 +127,13 @@
       "when": 1784137701820,
       "tag": "0017_panoramic_bloodstorm",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1785328854050,
+      "tag": "0018_curly_tusk",
+      "breakpoints": true
     }
   ]
 }
