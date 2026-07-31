@@ -22,7 +22,7 @@ app.use('/v1/*', async (c, next) => {
         return c.json({
             error: {
                 type: 'auth_error',
-                message: 'Missing X-Proxy-Token header. Check your TokenOps dashboard for setup instructions.',
+                message: 'Missing X-Proxy-Token header. Check your Tokenito dashboard for setup instructions.',
             },
         }, 401);
     }
@@ -31,7 +31,7 @@ app.use('/v1/*', async (c, next) => {
         return c.json({
             error: {
                 type: 'auth_error',
-                message: 'Your X-Proxy-Token is not associated with your TokenOps account. Check your TokenOps dashboard for setup instructions.',
+                message: 'Your X-Proxy-Token is not associated with your Tokenito account. Check your Tokenito dashboard for setup instructions.',
             },
         }, 401);
     }

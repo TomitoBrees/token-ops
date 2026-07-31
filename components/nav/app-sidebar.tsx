@@ -13,6 +13,7 @@ import { ConnectIdeGuide } from '@/components/connect-ide/connect-ide-guide'
 import { NavMain } from '@/components/nav/nav-main'
 import { NavSecondary } from '@/components/nav/nav-secondary'
 import { NavUser } from '@/components/nav/nav-user'
+import { TokenitoIcon } from '@/components/tokenito-icon'
 import {
 	Sidebar,
 	SidebarContent,
@@ -61,13 +62,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			<SidebarHeader>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton
-							asChild
-							className="data-[slot=sidebar-menu-button]:p-1.5!"
-						>
-							<a href="#">
-								<span className="text-base font-semibold">
-									Token Ops
+						<SidebarMenuButton asChild size="lg">
+							<a href="#" className="flex items-center gap-2">
+								<TokenitoIcon
+									className="size-8! shrink-0"
+									aria-hidden="true"
+								/>
+								<span className="font-brand text-base font-semibold">
+									Tokenito
 								</span>
 							</a>
 						</SidebarMenuButton>

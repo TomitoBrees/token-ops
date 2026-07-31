@@ -1,7 +1,6 @@
 'use client'
 
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { GalleryVerticalEndIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, type SubmitEvent } from 'react'
 
@@ -15,6 +14,7 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TokenitoIcon } from '@/components/tokenito-icon'
 import { useTRPC } from '@/trpc/client'
 
 type CompleteInviteFormProps = {
@@ -110,8 +110,8 @@ export function CompleteInviteForm({ invitationId }: CompleteInviteFormProps) {
 	return (
 		<div className="flex w-full max-w-sm flex-col gap-6">
 			<div className="flex flex-col items-center gap-1.5 text-center">
-				<div className="mb-3 flex size-8 items-center justify-center rounded-md text-primary">
-					<GalleryVerticalEndIcon className="size-6" />
+				<div className="mb-3 flex size-8 items-center justify-center">
+					<TokenitoIcon className="size-8" aria-hidden="true" />
 				</div>
 				<h1 className="text-2xl font-semibold tracking-tight">
 					Join {companyName}

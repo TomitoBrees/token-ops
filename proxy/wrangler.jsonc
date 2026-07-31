@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "token-ops-proxy",
+	"name": "tokenito-proxy",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-06-25",
 	// "compatibility_flags": [

@@ -23,7 +23,7 @@ import { useTRPC } from '@/trpc/client'
 
 const PROXY_URL =
 	process.env.NEXT_PUBLIC_PROXY_URL ??
-	'https://token-ops-proxy.tom-l-hotellier.workers.dev'
+	'https://tokenito-proxy.tom-l-hotellier.workers.dev'
 
 const TOKEN_PLACEHOLDER = 'your-proxy-token'
 
