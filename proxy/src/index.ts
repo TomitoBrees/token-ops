@@ -7,6 +7,10 @@ import type {
 	Usage,
 } from '@anthropic-ai/sdk/resources/messages'
 
+import { calcPrice, extractUsage, findProvider } from '@pydantic/genai-prices'
+
+const ANTHROPIC_PROVIDER = findProvider({ providerId: 'anthropic' })
+
 /* TYPES */
 
 type Env = {
@@ -148,7 +152,7 @@ app.all('/v1/*', async (c) => {
 							output_tokens: usage.output_tokens ?? 0,
 							cache_read_input_tokens:
 								usage.cache_read_input_tokens ?? 0,
-							estimated_cost_usd: 0,
+							estimated_cost_usd: estimateCostUsd(model, usage),
 							cache_creation_input_tokens: cc.total,
 							cache_creation_5m_input_tokens: cc.fiveMin,
 							cache_creation_1h_input_tokens: cc.oneHour,
@@ -200,7 +204,7 @@ app.all('/v1/*', async (c) => {
 						output_tokens: usage.output_tokens || 0,
 						cache_read_input_tokens:
 							usage.cache_read_input_tokens || 0,
-						estimated_cost_usd: 0,
+						estimated_cost_usd: estimateCostUsd(model, usage),
 						cache_creation_input_tokens: cc.total,
 						cache_creation_5m_input_tokens: cc.fiveMin,
 						cache_creation_1h_input_tokens: cc.oneHour,
@@ -369,6 +373,20 @@ function splitCacheCreation(u: {
 		fiveMin: detail.ephemeral_5m_input_tokens ?? 0,
 		oneHour: detail.ephemeral_1h_input_tokens ?? 0,
 		total,
+	}
+}
+
+function estimateCostUsd(model: string, usage: Usage): number {
+	if (!ANTHROPIC_PROVIDER) return 0
+
+	try {
+		const extracted = extractUsage(ANTHROPIC_PROVIDER, { model, usage })
+		const result = calcPrice(extracted.usage, extracted.model ?? model, {
+			providerId: 'anthropic',
+		})
+		return result?.total_price ?? 0
+	} catch {
+		return 0
 	}
 }
 
