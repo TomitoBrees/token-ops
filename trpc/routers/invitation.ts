@@ -4,6 +4,7 @@ import {
 	companyInvitations,
 	companyMembers,
 	MEMBER_ROLES,
+	membersBudgets,
 	profiles,
 } from '@/drizzle/schema'
 import { eq } from 'drizzle-orm/sql'
@@ -113,10 +114,18 @@ export const invitationRouter = createTRPCRouter({
 					.set({ displayName: input.displayName })
 					.where(eq(profiles.id, ctx.user.sub))
 
-				await tx.insert(companyMembers).values({
-					userId: ctx.user.sub,
-					companyId: invitation.company_id,
-					role: invitation.role,
+				const [member] = await tx
+					.insert(companyMembers)
+					.values({
+						userId: ctx.user.sub,
+						companyId: invitation.company_id,
+						role: invitation.role,
+					})
+					.returning()
+
+				await tx.insert(membersBudgets).values({
+					companyMemberId: member.id,
+					budget: 300,
 				})
 
 				const [accepted] = await tx

@@ -182,44 +182,63 @@ export const usageRouter = createTRPCRouter({
 			)
 		}),
 
-	getCurrentMonthUsage: protectedProcedure.query(async ({ ctx }) => {
-		const membership = await getUserCompanyMembership(ctx.db, ctx.user.sub)
-
-		if (!membership || !membership.company) {
-			throw new TRPCError({
-				code: 'NOT_FOUND',
-				message: 'The current user doesnt have a company',
-			})
-		}
-
-		const today = new Date()
-		const year = today.getFullYear()
-		const month = today.getMonth()
-		const monthStr = String(month + 1).padStart(2, '0')
-		const startDate = `${year}-${monthStr}-01`
-		const endDate = `${year}-${monthStr}-${String(today.getDate()).padStart(2, '0')}`
-
-		const [usage] = await ctx.db
-			.select({
-				totalCalls: sum(usageDaily.totalCalls),
-				tokensConsumed: sum(usageDaily.tokensConsumed),
-				totalCostUsd: sum(usageDaily.totalCostUsd),
-			})
-			.from(usageDaily)
-			.where(
-				and(
-					eq(usageDaily.companyId, membership.company.id),
-					gte(usageDaily.date, startDate),
-					lte(usageDaily.date, endDate),
-				),
+	getCurrentMonthUsage: protectedProcedure
+		.input(
+			z.object({
+				scope: z.enum(['company', 'personal']).default('personal'),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const membership = await getUserCompanyMembership(
+				ctx.db,
+				ctx.user.sub,
 			)
 
-		return {
-			totalCalls: Number(usage?.totalCalls ?? 0),
-			tokensConsumed: Number(usage?.tokensConsumed ?? 0),
-			totalCostUsd: usage?.totalCostUsd ?? '0',
-		}
-	}),
+			if (!membership || !membership.company) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'The current user doesnt have a company',
+				})
+			}
+
+			const effectiveScope =
+				input.scope === 'company' && membership.role === 'owner'
+					? 'company'
+					: 'personal'
+
+			const today = new Date()
+			const year = today.getFullYear()
+			const month = today.getMonth()
+			const monthStr = String(month + 1).padStart(2, '0')
+			const startDate = `${year}-${monthStr}-01`
+			const endDate = `${year}-${monthStr}-${String(today.getDate()).padStart(2, '0')}`
+
+			const scopeFilter =
+				effectiveScope === 'company'
+					? eq(usageDaily.companyId, membership.company.id)
+					: eq(usageDaily.companyMemberId, membership.membership.id)
+
+			const [usage] = await ctx.db
+				.select({
+					totalCalls: sum(usageDaily.totalCalls),
+					tokensConsumed: sum(usageDaily.tokensConsumed),
+					totalCostUsd: sum(usageDaily.totalCostUsd),
+				})
+				.from(usageDaily)
+				.where(
+					and(
+						scopeFilter,
+						gte(usageDaily.date, startDate),
+						lte(usageDaily.date, endDate),
+					),
+				)
+
+			return {
+				totalCalls: Number(usage?.totalCalls ?? 0),
+				tokensConsumed: Number(usage?.tokensConsumed ?? 0),
+				totalCostUsd: usage?.totalCostUsd ?? '0',
+			}
+		}),
 	isFirstUse: protectedProcedure.query(async ({ ctx }) => {
 		const membership = await getUserCompanyMembership(ctx.db, ctx.user.sub)
 		if (!membership || !membership.company) {

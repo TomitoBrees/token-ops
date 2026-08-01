@@ -59,19 +59,30 @@ export const companyBudgets = pgTable(
 		companyId: uuid('company_id')
 			.references(() => companies.id)
 			.notNull(),
-		month: integer('month').notNull(),
-		year: integer('year').notNull(),
 		budget: integer('budget').notNull().default(0),
 		createdAt: timestamp('created_at', { withTimezone: true })
 			.defaultNow()
 			.notNull(),
 	},
 	(table) => [
-		unique('company_budgets_company_month_year_unique').on(
-			table.companyId,
-			table.month,
-			table.year,
-		),
+		unique('company_budgets_company_id_unique').on(table.companyId),
+	],
+)
+
+export const membersBudgets = pgTable(
+	'members_budgets',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		companyMemberId: uuid('company_member_id')
+			.references(() => companyMembers.id)
+			.notNull(),
+		budget: integer('budget').notNull().default(0),
+		createdAt: timestamp('created_at', { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		unique('member_budgets_member_id_unique').on(table.companyMemberId),
 	],
 )
 

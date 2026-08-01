@@ -16,25 +16,9 @@ export function DashboardContent() {
 	const trpc = useTRPC()
 	const { data: isFirstUse } = useQuery(trpc.usage.isFirstUse.queryOptions())
 
-	if (scope === 'personal') {
-		return (
-			<>
-				{isFirstUse && <ConnectIdeBanner />}
-				<CardsSection />
-				<div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-					<div className="h-full xl:col-span-2">
-						<UsageTrendChart />
-					</div>
-					<div className="h-full xl:col-span-1">
-						<ModelUsage />
-					</div>
-				</div>
-			</>
-		)
-	}
-
 	return (
 		<>
+			{scope === 'personal' && isFirstUse && <ConnectIdeBanner />}
 			<CardsSection />
 			<UsageTrendChart />
 			<div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -45,7 +29,7 @@ export function DashboardContent() {
 					<BudgetChart />
 				</div>
 			</div>
-			<DataTable />
+			{scope === 'company' && <DataTable />}
 		</>
 	)
 }

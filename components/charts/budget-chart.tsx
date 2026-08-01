@@ -12,9 +12,23 @@ import {
 	formatCurrency,
 	formatPercent,
 } from '@/components/data-cards/usage-metrics'
+import { useDashboardPeriod } from '@/components/dashboard/dashboard-period-context'
+import { EditBudgetDialog } from '@/components/dashboard/edit-budget-dialog'
 import { useMonthlyBudget } from '@/components/dashboard/use-monthly-budget'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+	Card,
+	CardAction,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from '@/components/ui/card'
 import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
@@ -136,14 +150,37 @@ function BudgetRadial({ percent }: BudgetRadialProps) {
 }
 
 export function BudgetChart() {
+	const { scope } = useDashboardPeriod()
 	const { metrics, isLoading } = useMonthlyBudget()
+	const title = scope === 'personal' ? 'My monthly budget' : 'Company budget'
+	const limitLabel = scope === 'personal' ? 'My limit' : 'Budget'
 
 	if (isLoading) {
 		return <BudgetChartSkeleton />
 	}
 
 	if (!metrics) {
-		return null
+		return (
+			<Card className={cardClassName}>
+				<CardHeader>
+					<CardTitle>{title}</CardTitle>
+					<CardAction>
+						<EditBudgetDialog defaultBudgetType={scope} />
+					</CardAction>
+				</CardHeader>
+				<CardContent>
+					<Empty>
+						<EmptyHeader>
+							<EmptyTitle>No budget set</EmptyTitle>
+							<EmptyDescription>
+								Set a monthly budget to start tracking usage
+								against it.
+							</EmptyDescription>
+						</EmptyHeader>
+					</Empty>
+				</CardContent>
+			</Card>
+		)
 	}
 
 	const { totalCost, currentMonthBudget, usedPercent, remaining } = metrics
@@ -151,7 +188,10 @@ export function BudgetChart() {
 	return (
 		<Card className={cardClassName}>
 			<CardHeader>
-				<CardTitle>Monthly budget</CardTitle>
+				<CardTitle>{title}</CardTitle>
+				<CardAction>
+					<EditBudgetDialog defaultBudgetType={scope} />
+				</CardAction>
 			</CardHeader>
 			<CardContent>
 				<div className="flex items-center gap-6">
@@ -166,7 +206,7 @@ export function BudgetChart() {
 							value={formatCurrency(remaining)}
 						/>
 						<BudgetMetric
-							label="Budget"
+							label={limitLabel}
 							value={formatCurrency(currentMonthBudget)}
 						/>
 					</div>

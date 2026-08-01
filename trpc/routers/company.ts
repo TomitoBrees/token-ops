@@ -1,10 +1,11 @@
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import z from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import {
 	companies,
 	companyBudgets,
 	companyMembers,
+	membersBudgets,
 	profiles,
 } from '@/drizzle/schema'
 import { getUserCompanyMembership } from '../lib/membership'
@@ -47,17 +48,30 @@ export const companyRouter = createTRPCRouter({
 					})
 					.returning()
 
-				await tx.insert(companyMembers).values({
-					userId: ctx.user.sub,
+				const [member] = await tx
+					.insert(companyMembers)
+					.values({
+						userId: ctx.user.sub,
+						companyId: company.id,
+						role: 'owner',
+					})
+					.returning()
+
+				await tx.insert(companyBudgets).values({
 					companyId: company.id,
-					role: 'owner',
+					budget: 1000,
+				})
+
+				await tx.insert(membersBudgets).values({
+					companyMemberId: member.id,
+					budget: 300,
 				})
 
 				return company
 			})
 		}),
 
-	getCurrentMonthBudget: protectedProcedure.query(async ({ ctx }) => {
+	getCompanyBudget: protectedProcedure.query(async ({ ctx }) => {
 		const membership = await getUserCompanyMembership(ctx.db, ctx.user.sub)
 		if (!membership || !membership.company) {
 			throw new TRPCError({
@@ -66,16 +80,88 @@ export const companyRouter = createTRPCRouter({
 			})
 		}
 
-		const today = new Date()
-		const currentMonth = today.getMonth() + 1
-		const currentYear = today.getFullYear()
-
 		return ctx.db.query.companyBudgets.findFirst({
-			where: and(
-				eq(companyBudgets.companyId, membership.company.id),
-				eq(companyBudgets.month, currentMonth),
-				eq(companyBudgets.year, currentYear),
-			),
+			where: eq(companyBudgets.companyId, membership.company.id),
 		})
 	}),
+
+	getMemberBudget: protectedProcedure.query(async ({ ctx }) => {
+		const membership = await getUserCompanyMembership(ctx.db, ctx.user.sub)
+		if (!membership || !membership.company) {
+			throw new TRPCError({
+				code: 'NOT_FOUND',
+				message: 'The current user doesnt have a company',
+			})
+		}
+
+		return ctx.db.query.membersBudgets.findFirst({
+			where: eq(membersBudgets.companyMemberId, membership.membership.id),
+		})
+	}),
+
+	setMemberBudget: protectedProcedure
+		.input(z.object({ budget: z.number().int().min(0) }))
+		.mutation(async ({ ctx, input }) => {
+			const membership = await getUserCompanyMembership(
+				ctx.db,
+				ctx.user.sub,
+			)
+			if (!membership || !membership.company) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'The current user doesnt have a company',
+				})
+			}
+
+			const [budget] = await ctx.db
+				.insert(membersBudgets)
+				.values({
+					companyMemberId: membership.membership.id,
+					budget: input.budget,
+				})
+				.onConflictDoUpdate({
+					target: membersBudgets.companyMemberId,
+					set: { budget: input.budget },
+				})
+				.returning()
+
+			return budget
+		}),
+
+	setCompanyBudget: protectedProcedure
+		.input(z.object({ budget: z.number().int().min(0) }))
+		.mutation(async ({ ctx, input }) => {
+			const membership = await getUserCompanyMembership(
+				ctx.db,
+				ctx.user.sub,
+			)
+			if (!membership || !membership.company) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'The current user doesnt have a company',
+				})
+			}
+
+			if (membership.role !== 'owner') {
+				throw new TRPCError({
+					code: 'FORBIDDEN',
+					message:
+						'Only company admins can update the company budget',
+				})
+			}
+
+			const [budget] = await ctx.db
+				.insert(companyBudgets)
+				.values({
+					companyId: membership.company.id,
+					budget: input.budget,
+				})
+				.onConflictDoUpdate({
+					target: companyBudgets.companyId,
+					set: { budget: input.budget },
+				})
+				.returning()
+
+			return budget
+		}),
 })

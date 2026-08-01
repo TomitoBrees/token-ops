@@ -12,7 +12,7 @@ export default async function Page() {
 	await queryClient.prefetchQuery(trpc.company.getCompany.queryOptions())
 	await queryClient.prefetchQuery(trpc.profile.getProfile.queryOptions())
 	await queryClient.prefetchQuery(
-		trpc.usage.getCurrentMonthUsage.queryOptions(),
+		trpc.usage.getCurrentMonthUsage.queryOptions({ scope: 'personal' }),
 	)
 	await queryClient.prefetchQuery(
 		trpc.usage.getDailyUsage.queryOptions({
@@ -31,7 +31,7 @@ export default async function Page() {
 	)
 	await queryClient.prefetchQuery(trpc.usage.isFirstUse.queryOptions())
 	await queryClient.prefetchQuery(
-		trpc.company.getCurrentMonthBudget.queryOptions(),
+		trpc.company.getMemberBudget.queryOptions(),
 	)
 
 	return (
