@@ -99,7 +99,7 @@ export const companyMembers = pgTable(
 		userId: uuid('user_id').references(() => profiles.id),
 		companyId: uuid('company_id').references(() => companies.id),
 		role: roleEnum().notNull().default('developer'),
-		proxy_token: uuid('proxy_token'),
+		proxy_token: uuid('proxy_token').defaultRandom().notNull(),
 		createdAt: timestamp('created_at', { withTimezone: true })
 			.defaultNow()
 			.notNull(),
