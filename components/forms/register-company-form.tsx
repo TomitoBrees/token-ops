@@ -45,7 +45,7 @@ export function RegisterCompanyForm({
   const createCompany = useMutation(
     trpc.company.createCompany.mutationOptions({
       onSuccess: () => {
-        router.push('/')
+        router.push('/dashboard')
         router.refresh()
       },
       onError: (err) => {
