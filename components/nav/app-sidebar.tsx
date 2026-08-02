@@ -8,6 +8,7 @@ import {
 	SettingsIcon,
 	SquareChartGanttIcon,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 
 import { ConnectIdeGuide } from '@/components/connect-ide/connect-ide-guide'
 import { NavMain } from '@/components/nav/nav-main'
@@ -23,13 +24,9 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { useTRPC } from '@/trpc/client'
 
 const data = {
-	user: {
-		name: 'shadcn',
-		email: 'm@example.com',
-		avatar: '/avatars/shadcn.jpg',
-	},
 	navMain: [
 		{
 			title: 'Dashboard',
@@ -42,21 +39,19 @@ const data = {
 			icon: SquareChartGanttIcon,
 		},
 	],
-	navSecondary: [
-		{
-			title: 'Settings',
-			url: '#',
-			icon: SettingsIcon,
-		},
-		{
-			title: 'Get Help',
-			url: '#',
-			icon: LifeBuoyIcon,
-		},
-	],
+	navSecondary: [],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+	const trpc = useTRPC()
+	const { data: profile } = useQuery(trpc.profile.getProfile.queryOptions())
+
+	const user = {
+		name: profile?.displayName ?? profile?.email ?? 'You',
+		email: profile?.email ?? '',
+		avatar: '',
+	}
+
 	return (
 		<Sidebar collapsible="offcanvas" {...props}>
 			<SidebarHeader>
@@ -90,7 +85,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				</NavSecondary>
 			</SidebarContent>
 			<SidebarFooter>
-				<NavUser user={data.user} />
+				<NavUser user={user} />
 			</SidebarFooter>
 		</Sidebar>
 	)
