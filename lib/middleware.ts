@@ -1,6 +1,11 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { db } from '@/db'
+import { getUserCompanyMembership } from '@/trpc/lib/membership'
+
+const COMPANY_EXEMPT_PREFIXES = ['/create-company', '/invite', '/auth', '/api']
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -50,6 +55,19 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)
+  }
+
+  const isCompanyExempt = COMPANY_EXEMPT_PREFIXES.some((prefix) =>
+    request.nextUrl.pathname.startsWith(prefix),
+  )
+
+  if (user && !isCompanyExempt) {
+    const membership = await getUserCompanyMembership(db, user.sub)
+    if (!membership) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/create-company'
+      return NextResponse.redirect(url)
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.

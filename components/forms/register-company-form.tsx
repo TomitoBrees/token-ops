@@ -37,6 +37,7 @@ export function RegisterCompanyForm({
 }: RegisterCompanyFormProps) {
   const router = useRouter()
   const trpc = useTRPC()
+  const [displayName, setDisplayName] = useState('')
   const [name, setName] = useState('')
   const [size, setSize] = useState<CompanySize | ''>('')
   const [error, setError] = useState<string | null>(null)
@@ -58,7 +59,7 @@ export function RegisterCompanyForm({
     if (!size) return
 
     setError(null)
-    createCompany.mutate({ name, size })
+    createCompany.mutate({ name, size, displayName })
   }
 
   return (
@@ -71,6 +72,17 @@ export function RegisterCompanyForm({
         <CardContent>
           <form onSubmit={handleSubmit}>
             <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="display-name">Your display name</FieldLabel>
+                <Input
+                  id="display-name"
+                  type="text"
+                  placeholder="How your name appears to teammates"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  required
+                />
+              </Field>
               <Field>
                 <FieldLabel htmlFor="name">Company name</FieldLabel>
                 <Input

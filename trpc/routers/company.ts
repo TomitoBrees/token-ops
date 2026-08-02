@@ -36,10 +36,19 @@ export const companyRouter = createTRPCRouter({
 
 	createCompany: protectedProcedure
 		.input(
-			z.object({ name: z.string(), size: z.enum(COMPANY_SIZE_OPTIONS) }),
+			z.object({
+				name: z.string(),
+				size: z.enum(COMPANY_SIZE_OPTIONS),
+				displayName: z.string().min(1),
+			}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			return ctx.db.transaction(async (tx) => {
+				await tx
+					.update(profiles)
+					.set({ displayName: input.displayName })
+					.where(eq(profiles.id, ctx.user.sub))
+
 				const [company] = await tx
 					.insert(companies)
 					.values({
